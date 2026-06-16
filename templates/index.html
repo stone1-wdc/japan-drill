@@ -1,0 +1,488 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语练习本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Hiragino Sans"', '"Noto Sans JP"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div class="max-w-[600px] mx-auto min-h-screen bg-white shadow-sm">
+
+        <!-- Header -->
+        <header class="px-5 py-4 border-b border-gray-200">
+            <h1 class="text-xl font-bold text-gray-800 tracking-wide">日语练习本</h1>
+        </header>
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="px-5 py-16 text-center">
+            <p class="text-gray-500 text-sm mb-6">输入用户名开始练习</p>
+            <input id="username-input" type="text" placeholder="用户名" autocomplete="off"
+                class="w-full max-w-xs border border-gray-300 rounded-lg px-4 py-2.5 text-base text-gray-700
+                       focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-center mb-4"/>
+            <button id="start-btn"
+                class="block mx-auto bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white
+                       font-medium px-10 py-2.5 rounded-lg transition-colors disabled:opacity-40">
+                开始学习
+            </button>
+        </div>
+
+        <!-- Practice Screen -->
+        <div id="practice-screen" class="hidden px-5 py-6">
+
+            <!-- Progress + Unit -->
+            <div class="mb-3 text-sm text-gray-500">
+                <span id="progress-label">第1课 第1句</span>
+                <span id="unit-label" class="ml-3 text-blue-500"></span>
+                <span id="progress-count" class="float-right text-gray-400"></span>
+            </div>
+
+            <!-- Navigation -->
+            <div class="flex items-center gap-2 mb-4">
+                <button id="btn-prev"
+                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
+                           text-gray-600 text-sm py-2 rounded-lg transition-colors
+                           flex items-center justify-center gap-1 disabled:opacity-30">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                    上一句
+                </button>
+                <button id="btn-skip"
+                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
+                           text-gray-600 text-sm py-2 rounded-lg transition-colors
+                           flex items-center justify-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                    跳过
+                </button>
+                <select id="chapter-select"
+                    class="flex-1 bg-white border border-gray-300 text-gray-600 text-sm py-2 px-2 rounded-lg
+                           focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </select>
+            </div>
+
+            <!-- Sentence card -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl px-6 py-8 mb-4 min-h-[140px]
+                        flex flex-col items-center justify-center gap-2">
+                <p id="sentence-text" class="text-2xl text-gray-800 leading-relaxed text-center font-[serif]"></p>
+                <p id="sentence-reading" class="text-sm text-gray-400 text-center"></p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-3 mb-4">
+                <button id="btn-audio"
+                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
+                           text-gray-700 font-medium py-2.5 rounded-lg transition-colors text-sm
+                           flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+                    播放音频
+                </button>
+                <button id="btn-grammar"
+                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
+                           text-gray-700 font-medium py-2.5 rounded-lg transition-colors text-sm
+                           flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    语法帮助
+                </button>
+                <button id="btn-translate"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
+                           text-white font-medium py-2.5 rounded-lg transition-colors text-sm
+                           flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    翻译提交
+                </button>
+            </div>
+
+            <!-- Translation input area -->
+            <div id="translate-area" class="hidden mb-4">
+                <input id="reading-input" type="text" placeholder="输入读音（かな）..."
+                    autocomplete="off"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm mb-2
+                           focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
+                <div class="flex gap-2">
+                    <input id="translate-input" type="text" placeholder="输入中文翻译..."
+                        autocomplete="off"
+                        class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-base
+                               focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
+                    <button id="btn-check"
+                        class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
+                               font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
+                        检查
+                    </button>
+                </div>
+                <p id="translate-feedback" class="text-sm mt-2 min-h-[20px]"></p>
+            </div>
+
+            <button id="btn-answer"
+                class="w-full bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300
+                       text-yellow-700 font-medium py-2 rounded-lg transition-colors text-sm mb-3">
+                查看答案
+            </button>
+            <div id="answer-area" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-sm text-gray-600"><span class="font-medium">读音：</span><span id="answer-reading"></span></p>
+                <p class="text-sm text-gray-600 mt-1"><span class="font-medium">翻译：</span><span id="answer-zh"></span></p>
+            </div>
+
+            <!-- Toast -->
+            <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg
+                        text-sm font-medium shadow-lg z-50 transition-all duration-300"></div>
+        </div>
+
+        <!-- Grammar Modal -->
+        <div id="grammar-modal" class="hidden fixed inset-0 z-40 flex items-end sm:items-center justify-center">
+            <div class="absolute inset-0 bg-black/40" id="modal-overlay"></div>
+            <div class="relative bg-white w-full max-w-[600px] max-h-[80vh] rounded-t-2xl sm:rounded-2xl
+                        overflow-hidden flex flex-col shadow-xl">
+                <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800">语法搜索</h3>
+                    <button id="modal-close" class="text-gray-400 hover:text-gray-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="px-5 py-3 border-b border-gray-100">
+                    <input id="grammar-search" type="text" placeholder="输入关键词..."
+                        autocomplete="off"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
+                </div>
+                <div id="grammar-results" class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                    <p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>
+                </div>
+            </div>
+        </div>
+
+        <audio id="audio-player" class="hidden"></audio>
+    </div>
+
+    <script>
+        // State
+        let username = '';
+        let currentChapter = 1;
+        let currentIndex = 0;
+        let sentences = [];
+        let totalInChapter = 0;
+        let units = [];
+
+        // DOM refs
+        const loginScreen = document.getElementById('login-screen');
+        const practiceScreen = document.getElementById('practice-screen');
+        const usernameInput = document.getElementById('username-input');
+        const startBtn = document.getElementById('start-btn');
+        const progressLabel = document.getElementById('progress-label');
+        const unitLabel = document.getElementById('unit-label');
+        const progressCount = document.getElementById('progress-count');
+        const sentenceText = document.getElementById('sentence-text');
+        const sentenceReading = document.getElementById('sentence-reading');
+        const btnAudio = document.getElementById('btn-audio');
+        const btnGrammar = document.getElementById('btn-grammar');
+        const btnTranslate = document.getElementById('btn-translate');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnSkip = document.getElementById('btn-skip');
+        const chapterSelect = document.getElementById('chapter-select');
+        const translateArea = document.getElementById('translate-area');
+        const readingInput = document.getElementById('reading-input');
+        const translateInput = document.getElementById('translate-input');
+        const btnCheck = document.getElementById('btn-check');
+        const translateFeedback = document.getElementById('translate-feedback');
+        const answerArea = document.getElementById('answer-area');
+        const btnAnswer = document.getElementById('btn-answer');
+        const answerReading = document.getElementById('answer-reading');
+        const answerZh = document.getElementById('answer-zh');
+        const toast = document.getElementById('toast');
+        const grammarModal = document.getElementById('grammar-modal');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalClose = document.getElementById('modal-close');
+        const grammarSearch = document.getElementById('grammar-search');
+        const grammarResults = document.getElementById('grammar-results');
+        const audioPlayer = document.getElementById('audio-player');
+
+        // Login
+        startBtn.addEventListener('click', async () => {
+            const name = usernameInput.value.trim();
+            if (!name) return;
+            username = name;
+            startBtn.disabled = true;
+            startBtn.textContent = '加载中...';
+            try {
+                const progRes = await fetch('/api/progress?username=' + encodeURIComponent(username));
+                const prog = await progRes.json();
+                currentChapter = prog.chapter;
+                currentIndex = prog.sentence_index;
+                await loadChapter(currentChapter);
+                loginScreen.classList.add('hidden');
+                practiceScreen.classList.remove('hidden');
+                loadChapterList();
+            } catch (e) {
+                showToast('连接失败，请重试', 'error');
+                startBtn.disabled = false;
+                startBtn.textContent = '开始学习';
+            }
+        });
+        usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') startBtn.click(); });
+
+        // Load chapter
+        async function loadChapter(chNum) {
+            const res = await fetch('/api/chapter/' + chNum);
+            if (!res.ok) {
+                sentenceText.textContent = '\uD83C\uDF89 全部完成！';
+                progressLabel.textContent = '恭喜';
+                unitLabel.textContent = '';
+                progressCount.textContent = '';
+                btnAudio.disabled = true;
+                btnTranslate.disabled = true;
+                btnGrammar.disabled = true;
+                sentences = [];
+                units = [];
+                return;
+            }
+            const data = await res.json();
+            sentences = data.sentences;
+            units = data.units || [];
+            totalInChapter = sentences.length;
+            currentChapter = data.chapter;
+            if (currentIndex >= sentences.length) currentIndex = 0;
+            renderSentence();
+        }
+
+        function getCurrentUnit() {
+            for (const u of units) {
+                if (currentIndex >= u.start && currentIndex < u.end) return u.name;
+            }
+            return '';
+        }
+
+        // Render sentence
+        function renderSentence() {
+            if (sentences.length === 0) return;
+            const cur = sentences[currentIndex];
+            sentenceText.textContent = cur.jp || '';
+            sentenceReading.textContent = cur.reading || '';
+            progressLabel.textContent = '\u7B2C' + currentChapter + '\u8BFE  \u7B2C' + (currentIndex + 1) + '\u53E5';
+            unitLabel.textContent = getCurrentUnit();
+            progressCount.textContent = (currentIndex + 1) + ' / ' + totalInChapter;
+            answerArea.classList.add('hidden');
+            translateArea.classList.add('hidden');
+            readingInput.value = '';
+            translateInput.value = '';
+            translateFeedback.textContent = '';
+            translateFeedback.className = 'text-sm mt-2 min-h-[20px]';
+            btnAudio.disabled = false;
+            btnTranslate.disabled = false;
+            btnGrammar.disabled = false;
+        }
+
+        // Audio
+        btnAudio.addEventListener('click', () => {
+            // Stop any ongoing speech
+            window.speechSynthesis.cancel();
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+
+            const cur = sentences[currentIndex];
+            const text = cur.reading || cur.jp || '';
+            if (!text) { showToast('无文本可读', 'error'); return; }
+
+            // Try API first, fall back to browser TTS
+            fetch('/api/audio?chapter=' + currentChapter + '&sentence_index=' + currentIndex)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.url) {
+                        audioPlayer.src = data.url;
+                        audioPlayer.play().catch(function() { speakWithTTS(text); });
+                    } else {
+                        speakWithTTS(text);
+                    }
+                })
+                .catch(function() { speakWithTTS(text); });
+
+            function speakWithTTS(text) {
+                var u = new SpeechSynthesisUtterance(text);
+                u.lang = 'ja-JP';
+                u.rate = 0.9;
+                u.pitch = 1;
+                u.onerror = function() { showToast('语音播放失败', 'error'); };
+                window.speechSynthesis.speak(u);
+            }
+        });
+
+        // Grammar modal
+        function openModal() { grammarModal.classList.remove('hidden'); grammarSearch.value = ''; grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>'; setTimeout(() => grammarSearch.focus(), 100); }
+        function closeModal() { grammarModal.classList.add('hidden'); }
+        btnGrammar.addEventListener('click', openModal);
+        modalClose.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', closeModal);
+        let grammarDebounce = null;
+        grammarSearch.addEventListener('input', () => { clearTimeout(grammarDebounce); grammarDebounce = setTimeout(searchGrammar, 300); });
+        async function searchGrammar() {
+            const keyword = grammarSearch.value.trim();
+            if (!keyword) { grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>'; return; }
+            grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">搜索中...</p>';
+            try {
+                const res = await fetch('/api/grammar?keyword=' + encodeURIComponent(keyword));
+                const items = await res.json();
+                if (items.length === 0) { grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">未找到相关语法</p>'; return; }
+                grammarResults.innerHTML = items.map(item => '<div class="border border-gray-200 rounded-lg p-4"><h4 class="font-semibold text-gray-800 mb-1">' + escHtml(item.title) + '</h4><p class="text-sm text-gray-600 mb-3 leading-relaxed">' + escHtml(item.explanation) + '</p><div class="space-y-1.5">' + (item.examples || []).map(ex => '<div class="flex gap-3 text-sm"><span class="text-gray-800 font-[serif] flex-1">' + escHtml(ex.jp) + '</span><span class="text-gray-400 flex-1">' + escHtml(ex.cn) + '</span></div>').join('') + '</div></div>').join('');
+            } catch (e) { grammarResults.innerHTML = '<p class="text-sm text-red-400 text-center py-8">搜索失败</p>'; }
+        }
+
+        // Translation
+        btnTranslate.addEventListener('click', () => {
+            const cur = sentences[currentIndex];
+            translateArea.classList.remove('hidden');
+            translateFeedback.textContent = '';
+            translateFeedback.className = 'text-sm mt-2 min-h-[20px]';
+            answerArea.classList.add('hidden');
+            setTimeout(() => readingInput.focus(), 100);
+        });
+
+        btnCheck.addEventListener('click', checkTranslation);
+        readingInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') translateInput.focus(); });
+        translateInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkTranslation(); });
+
+        async function checkTranslation() {
+            const reading = readingInput.value.trim();
+            const input = translateInput.value.trim();
+            if (!input || input.length < 2) {
+                translateFeedback.textContent = '请输入翻译';
+                translateFeedback.className = 'text-sm mt-2 text-orange-500';
+                return;
+            }
+
+            const cur = sentences[currentIndex];
+            const refReading = cur.reading || '';
+            const refZh = cur.zh || '';
+
+            // Check pronunciation if reference exists
+            let readingOk = true;
+            if (refReading && reading) {
+                const rCommon = longestCommonSubstring(reading, refReading);
+                readingOk = rCommon.length >= Math.min(refReading.length * 0.5, 2);
+            }
+
+            // Check translation
+            let transOk = false;
+            if (refZh) {
+                const tCommon = longestCommonSubstring(input, refZh);
+                transOk = tCommon.length >= Math.min(refZh.length * 0.5, 3);
+            }
+
+            if (!readingOk && refReading) {
+                translateFeedback.textContent = '读音不太对，再试试';
+                translateFeedback.className = 'text-sm mt-2 text-orange-500';
+            } else if (!transOk) {
+                translateFeedback.textContent = '翻译不太对，再试试';
+                translateFeedback.className = 'text-sm mt-2 text-orange-500';
+            } else {
+                translateFeedback.textContent = '正确！';
+                translateFeedback.className = 'text-sm mt-2 text-green-600';
+                try {
+                    await fetch('/api/progress', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: username, chapter: currentChapter, sentence_index: currentIndex }),
+                    });
+                } catch (e) {}
+                showToast('已掌握 \u2713', 'success');
+                setTimeout(function() { advanceSentence(); }, 600);
+            }
+        }
+
+        // Matching helper
+        function longestCommonSubstring(a, b) {
+            let maxLen = 0, end = 0;
+            for (let i = 0; i < a.length; i++) {
+                for (let j = 0; j < b.length; j++) {
+                    let k = 0;
+                    while (i + k < a.length && j + k < b.length && a[i + k] === b[j + k]) k++;
+                    if (k > maxLen) { maxLen = k; end = i + k; }
+                }
+            }
+            return a.substring(end - maxLen, end);
+        }
+
+        function calcMatchScore(input, sentence) {
+            const tokens = [];
+            let run = '';
+            for (const ch of sentence) {
+                if (/[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/.test(ch)) { run += ch; }
+                else { if (run.length >= 2) tokens.push(run); run = ''; }
+            }
+            if (run.length >= 2) tokens.push(run);
+            if (tokens.length === 0) return 1.0;
+            let matched = 0;
+            for (const token of tokens) { if (input.includes(token)) matched++; }
+            return matched / tokens.length;
+        }
+
+        // View answer
+        btnAnswer.addEventListener('click', () => {
+            const cur = sentences[currentIndex];
+            answerArea.classList.remove('hidden');
+            answerReading.textContent = cur.reading || '（无）';
+            answerZh.textContent = cur.zh || '（无）';
+        });
+
+        // Navigation
+        btnPrev.addEventListener('click', () => {
+            if (currentIndex > 0) { currentIndex--; }
+            else if (currentChapter > 1) { currentChapter--; currentIndex = 0; loadChapter(currentChapter); return; }
+            renderSentence();
+        });
+
+        btnSkip.addEventListener('click', () => { advanceSentence(); });
+
+        function advanceSentence() {
+            currentIndex++;
+            if (currentIndex >= sentences.length) {
+                currentIndex = 0;
+                loadChapter(currentChapter + 1).then(() => {
+                    translateArea.classList.add('hidden');
+                    answerArea.classList.add('hidden');
+                    readingInput.value = '';
+                    translateInput.value = '';
+                });
+            } else {
+                renderSentence();
+            }
+        }
+
+        async function loadChapterList() {
+            try {
+                const res = await fetch('/api/chapters');
+                const chapters = await res.json();
+                chapterSelect.innerHTML = chapters.map(ch => '<option value="' + ch.number + '">第' + ch.number + '课</option>').join('');
+                chapterSelect.value = currentChapter;
+            } catch(e) {}
+        }
+
+        chapterSelect.addEventListener('change', function() {
+            const num = parseInt(this.value);
+            if (num !== currentChapter) { currentChapter = num; currentIndex = 0; loadChapter(currentChapter); }
+        });
+
+        // Toast
+        function showToast(msg, type) {
+            toast.textContent = msg;
+            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg text-sm font-medium shadow-lg z-50 transition-all duration-300 ' + (type === 'success' ? 'bg-green-600 text-white' : 'bg-red-500 text-white');
+            toast.classList.remove('hidden');
+            setTimeout(() => { toast.classList.add('hidden'); }, 2000);
+        }
+
+        function escHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
