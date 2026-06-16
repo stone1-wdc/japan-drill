@@ -1,3 +1,5 @@
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/stone1-wdc/japan-drill)
+
 # 日本語練習本 — Japanese Practice App
 
 交互式日语学习应用，基于 Flask + SQLite，支持单词记忆、翻译练习、语音朗读、语法搜索。
