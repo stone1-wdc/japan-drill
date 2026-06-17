@@ -316,46 +316,17 @@
             btnGrammar.disabled = false;
         }
 
-        // Audio - tries multiple TTS sources
+        // Audio playback
         btnAudio.addEventListener('click', function() {
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
-
             var cur = sentences[currentIndex];
             var text = cur.reading || cur.jp || '';
             if (!text) { showToast('无文本可读', 'error'); return; }
-
-            // Try local audio file first
-            fetch('/api/audio?chapter=' + currentChapter + '&sentence_index=' + currentIndex)
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.url) {
-                        audioPlayer.src = data.url;
-                        return audioPlayer.play();
-                    }
-                    throw new Error('no file');
-                })
-                .catch(function() {
-                    // Fallback 1: Youdao TTS (accessible in China)
-                    audioPlayer.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&le=jap';
-                    audioPlayer.play().catch(function() {
-                        // Fallback 2: Google TTS
-                        audioPlayer.src = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
-                        audioPlayer.play().catch(function() {
-                            // Fallback 3: Browser TTS
-                            var u = new SpeechSynthesisUtterance(text);
-                            u.lang = 'ja-JP'; u.rate = 0.9; u.volume = 1;
-                            var voices = speechSynthesis.getVoices();
-                            var ja = voices.find(function(v) { return v.lang.startsWith('ja'); });
-                            if (ja) u.voice = ja;
-                            u.onerror = function() { showToast('音频播放失败', 'error'); };
-                            speechSynthesis.speak(u);
-                        });
-                    });
-                });
-        });
-
-        // Grammar modal
+            audioPlayer.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&le=jap';
+            var p = audioPlayer.play();
+            if (p) p.catch(function() { showToast('音频播放失败', 'error'); });
+        });        // Grammar modal
         function openModal() { grammarModal.classList.remove('hidden'); grammarSearch.value = ''; grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>'; setTimeout(() => grammarSearch.focus(), 100); }
         function closeModal() { grammarModal.classList.add('hidden'); }
         btnGrammar.addEventListener('click', openModal);
