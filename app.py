@@ -1,4 +1,4 @@
-ï»¿import os
+import os
 import sqlite3
 import re
 import json
@@ -133,8 +133,8 @@ def _load_chapter(chapter_num):
             if line.startswith("## "):
                 current_unit = line[3:].strip()
                 continue
-            if 'â€”â€”' in line:
-                jp, rest = line.split('â€”â€”', 1)
+            if '¡ª¡ª' in line:
+                jp, rest = line.split('¡ª¡ª', 1)
                 jp = jp.strip()
                 zh = rest.strip()
                 # Extract pronunciation if present: jp|reading
@@ -302,4 +302,4 @@ init_db()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
