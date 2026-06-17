@@ -1,16 +1,29 @@
-import os
+ï»¿import os
+import sys
 import sqlite3
 import re
 import json
+import tempfile
 from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, request, send_file
-from io import BytesIO
 
 app = Flask(__name__)
 
-DATABASE = os.path.join("/tmp" if os.environ.get("VERCEL") else os.path.dirname(os.path.abspath(__file__)), "japanese.db")
-BOOK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "book", "chapters")
+# ---- Write startup diagnostics to stderr so Zeabur logs capture them ----
+print("[startup] Python", sys.version, file=sys.stderr)
+print("[startup] CWD:", os.getcwd(), file=sys.stderr)
+print("[startup] PORT env:", os.environ.get("PORT", "(not set)"), file=sys.stderr)
 
+# ---- Database path: use /tmp on cloud platforms (detected via PORT env) ----
+_is_cloud = bool(os.environ.get("PORT"))
+if _is_cloud or os.environ.get("VERCEL"):
+    DATABASE = "/tmp/japanese.db"
+else:
+    DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "japanese.db")
+
+BOOK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "book", "chapters")
+print("[startup] DATABASE:", DATABASE, file=sys.stderr)
+print("[startup] BOOK_DIR exists:", os.path.exists(BOOK_DIR), file=sys.stderr)
 
 # ---------------------------------------------------------------------------
 # Database helpers
@@ -106,7 +119,6 @@ def _chapter_number(filename):
     return int(m.group(1)) if m else 0
 
 
-
 # ---------------------------------------------------------------------------
 # Chapter cache
 # ---------------------------------------------------------------------------
@@ -133,11 +145,10 @@ def _load_chapter(chapter_num):
             if line.startswith("## "):
                 current_unit = line[3:].strip()
                 continue
-            if '¡ª¡ª' in line:
-                jp, rest = line.split('¡ª¡ª', 1)
+            if 'â€”â€”' in line:
+                jp, rest = line.split('â€”â€”', 1)
                 jp = jp.strip()
                 zh = rest.strip()
-                # Extract pronunciation if present: jp|reading
                 reading = ""
                 if "|" in jp:
                     jp, reading = jp.split("|", 1)
@@ -157,7 +168,6 @@ def _load_chapter(chapter_num):
                     "unit": current_unit
                 })
 
-    # Build unit list
     units = []
     seen = {}
     for i, s in enumerate(sentences):
@@ -240,14 +250,13 @@ def save_progress():
     return jsonify({"status": "ok"})
 
 
-
 @app.route("/api/tts")
 def get_tts():
     text = request.args.get("text", "")
     if not text:
         return jsonify({"error": "text required"}), 400
     try:
-        import edge_tts, asyncio, tempfile, os
+        import edge_tts, asyncio
 
         async def generate():
             tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
@@ -261,6 +270,7 @@ def get_tts():
                         download_name="audio.mp3")
     except Exception:
         return jsonify({"error": "tts failed"}), 500
+
 
 @app.route("/api/audio")
 def get_audio():
@@ -298,8 +308,13 @@ def get_grammar():
 # ---------------------------------------------------------------------------
 
 # Auto-initialize database on every startup
-init_db()
+try:
+    init_db()
+    print("[startup] Database initialized OK", file=sys.stderr)
+except Exception as e:
+    print("[startup] Database init FAILED:", e, file=sys.stderr)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    print(f"[startup] Starting Flask on 0.0.0.0:{port}", file=sys.stderr)
     app.run(host="0.0.0.0", port=port, debug=False)
