@@ -247,12 +247,18 @@ def get_tts():
     if not text:
         return jsonify({"error": "text required"}), 400
     try:
-        from gtts import gTTS
-        tts = gTTS(text=text, lang="ja")
-        mp3 = BytesIO()
-        tts.write_to_fp(mp3)
-        mp3.seek(0)
-        return send_file(mp3, mimetype="audio/mpeg")
+        import edge_tts, asyncio, tempfile, os
+
+        async def generate():
+            tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            tmp.close()
+            comm = edge_tts.Communicate(text, "ja-JP-NanamiNeural")
+            await comm.save(tmp.name)
+            return tmp.name
+
+        path = asyncio.run(generate())
+        return send_file(path, mimetype="audio/mpeg", as_attachment=False,
+                        download_name="audio.mp3")
     except Exception:
         return jsonify({"error": "tts failed"}), 500
 

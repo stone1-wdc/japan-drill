@@ -1,2 +1,2 @@
 flask
-gtts
+edge-tts
