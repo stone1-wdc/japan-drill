@@ -3,7 +3,8 @@ import sqlite3
 import re
 import json
 from datetime import datetime, timezone
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -238,6 +239,22 @@ def save_progress():
     update_user_progress(username, int(chapter), int(sentence_index))
     return jsonify({"status": "ok"})
 
+
+
+@app.route("/api/tts")
+def get_tts():
+    text = request.args.get("text", "")
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    try:
+        from gtts import gTTS
+        tts = gTTS(text=text, lang="ja")
+        mp3 = BytesIO()
+        tts.write_to_fp(mp3)
+        mp3.seek(0)
+        return send_file(mp3, mimetype="audio/mpeg")
+    except Exception:
+        return jsonify({"error": "tts failed"}), 500
 
 @app.route("/api/audio")
 def get_audio():

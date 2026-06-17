@@ -323,7 +323,7 @@
             var cur = sentences[currentIndex];
             var text = cur.reading || cur.jp || '';
             if (!text) { showToast('无文本可读', 'error'); return; }
-            audioPlayer.src = 'https://fanyi.baidu.com/gettts?lan=jp&spd=3&text=' + encodeURIComponent(text);
+            audioPlayer.src = '/api/tts?text=' + encodeURIComponent(text);
             var p = audioPlayer.play();
             if (p) p.catch(function() { showToast('音频播放失败', 'error'); });
         });        // Grammar modal
