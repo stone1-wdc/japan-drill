@@ -69,6 +69,10 @@
                     class="flex-1 bg-white border border-gray-300 text-gray-600 text-sm py-2 px-2 rounded-lg
                            focus:outline-none focus:ring-2 focus:ring-blue-400">
                 </select>
+            <select id="day-select"
+                    class="flex-1 bg-white border border-gray-300 text-gray-600 text-sm py-2 px-2 rounded-lg
+                           focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </select>
             </div>
 
             <!-- Sentence card -->
@@ -102,6 +106,18 @@
                     翻译提交
                 </button>
             </div>
+
+            <button id="btn-expand"
+                class="w-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300
+                       text-gray-600 font-medium py-2.5 rounded-lg transition-colors text-sm mb-4
+                       flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 9l-7 7-7-7"/>
+                </svg>
+                展开
+            </button>
+
+            <div id="expand-list" class="hidden mb-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100"></div>
 
             <!-- Translation input area -->
             <div id="translate-area" class="hidden mb-4">
@@ -189,6 +205,9 @@
         const btnPrev = document.getElementById('btn-prev');
         const btnSkip = document.getElementById('btn-skip');
         const chapterSelect = document.getElementById('chapter-select');
+        const daySelect = document.getElementById('day-select');
+        const btnExpand = document.getElementById('btn-expand');
+        const expandList = document.getElementById('expand-list');
         const translateArea = document.getElementById('translate-area');
         const readingInput = document.getElementById('reading-input');
         const translateInput = document.getElementById('translate-input');
@@ -251,6 +270,7 @@
             totalInChapter = sentences.length;
             currentChapter = data.chapter;
             if (currentIndex >= sentences.length) currentIndex = 0;
+            populateDaySelect();
             renderSentence();
         }
 
@@ -261,6 +281,16 @@
             return '';
         }
 
+        function populateDaySelect() {
+            var h = '';
+            for (var i = 0; i < units.length; i++) {
+                var u = units[i];
+                var sel = (currentIndex >= u.start && currentIndex < u.end) ? ' selected' : '';
+                h += '<option value="' + u.start + '"' + sel + '>' + u.name + '</option>';
+            }
+            daySelect.innerHTML = h || '<option>无</option>';
+        }
+
         // Render sentence
         function renderSentence() {
             if (sentences.length === 0) return;
@@ -269,6 +299,11 @@
             sentenceReading.textContent = cur.reading || '';
             progressLabel.textContent = '\u7B2C' + currentChapter + '\u8BFE  \u7B2C' + (currentIndex + 1) + '\u53E5';
             unitLabel.textContent = getCurrentUnit();
+            for (var di = 0; di < daySelect.options.length; di++) {
+                daySelect.options[di].selected = (currentIndex >= units[di].start && currentIndex < units[di].end);
+            }
+            expandList.classList.add('hidden');
+            expandList.innerHTML = '';
             progressCount.textContent = (currentIndex + 1) + ' / ' + totalInChapter;
             answerArea.classList.add('hidden');
             translateArea.classList.add('hidden');
@@ -282,6 +317,18 @@
         }
 
         // Audio
+        var voicesReady = false;
+        function loadVoices() {
+            return new Promise(function(resolve) {
+                var voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) { voicesReady = true; resolve(); return; }
+                window.speechSynthesis.addEventListener('voiceschanged', function() {
+                    voicesReady = true; resolve();
+                }, { once: true });
+            });
+        }
+        loadVoices();
+
         btnAudio.addEventListener('click', () => {
             // Stop any ongoing speech
             window.speechSynthesis.cancel();
@@ -306,12 +353,21 @@
                 .catch(function() { speakWithTTS(text); });
 
             function speakWithTTS(text) {
+                window.speechSynthesis.cancel();
                 var u = new SpeechSynthesisUtterance(text);
                 u.lang = 'ja-JP';
                 u.rate = 0.9;
                 u.pitch = 1;
-                u.onerror = function() { showToast('语音播放失败', 'error'); };
-                window.speechSynthesis.speak(u);
+                u.volume = 1;
+                var voices = window.speechSynthesis.getVoices();
+                var jaVoice = voices.find(function(v) { return v.lang.startsWith('ja'); });
+                if (jaVoice) u.voice = jaVoice;
+                u.onerror = function(e) {
+                    if (e.error !== 'canceled' && e.error !== 'interrupted') {
+                        showToast('语音播放失败', 'error');
+                    }
+                };
+                setTimeout(function() { window.speechSynthesis.speak(u); }, 100);
             }
         });
 
@@ -468,6 +524,48 @@
         chapterSelect.addEventListener('change', function() {
             const num = parseInt(this.value);
             if (num !== currentChapter) { currentChapter = num; currentIndex = 0; loadChapter(currentChapter); }
+        });
+
+        daySelect.addEventListener('change', function() {
+            var idx = parseInt(this.value);
+            if (!isNaN(idx) && idx >= 0 && idx < sentences.length) {
+                currentIndex = idx;
+                renderSentence();
+            }
+        });
+
+        btnExpand.addEventListener('click', function() {
+            if (!expandList.classList.contains('hidden')) {
+                expandList.classList.add('hidden');
+                expandList.innerHTML = '';
+                return;
+            }
+            var uStart = 0, uEnd = sentences.length;
+            for (var i = 0; i < units.length; i++) {
+                if (currentIndex >= units[i].start && currentIndex < units[i].end) {
+                    uStart = units[i].start; uEnd = units[i].end; break;
+                }
+            }
+            var h = '';
+            for (var i = uStart; i < uEnd; i++) {
+                var s = sentences[i];
+                var isActive = (i === currentIndex);
+                h += '<div class="px-4 py-3 hover:bg-gray-50 cursor-pointer' + (isActive ? ' bg-blue-50' : '') + '" data-idx="' + i + '">';
+                h += '<p class="text-base text-gray-800">' + escHtml(s.jp || '') + '</p>';
+                if (s.reading) h += '<p class="text-xs text-gray-400 mt-0.5">' + escHtml(s.reading) + '</p>';
+                h += '<p class="text-sm text-gray-500 mt-1">' + escHtml(s.zh || '') + '</p>';
+                h += '</div>';
+            }
+            expandList.innerHTML = h;
+            expandList.classList.remove('hidden');
+            var el = expandList.querySelector('[data-idx="' + currentIndex + '"]');
+            if (el) el.scrollIntoView({ block: 'nearest' });
+            expandList.querySelectorAll('div').forEach(function(div) {
+                div.addEventListener('click', function() {
+                    var idx = parseInt(this.getAttribute('data-idx'));
+                    if (!isNaN(idx)) { currentIndex = idx; renderSentence(); }
+                });
+            });
         });
 
         // Toast
