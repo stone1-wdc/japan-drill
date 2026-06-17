@@ -316,33 +316,44 @@
             btnGrammar.disabled = false;
         }
 
-        // Audio - uses Google TTS for reliable mobile playback
+        // Audio - browser TTS first, Google TTS fallback
         btnAudio.addEventListener('click', function() {
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
+            window.speechSynthesis.cancel();
 
             var cur = sentences[currentIndex];
             var text = cur.reading || cur.jp || '';
             if (!text) { showToast('无文本可读', 'error'); return; }
 
-            // Try local audio file first, fall back to Google TTS
-            var ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
-            
+            // Try local audio file first
             fetch('/api/audio?chapter=' + currentChapter + '&sentence_index=' + currentIndex)
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (data.url) {
                         audioPlayer.src = data.url;
-                    } else {
-                        audioPlayer.src = ttsUrl;
+                        return audioPlayer.play();
                     }
-                    return audioPlayer.play();
+                    throw new Error('no file');
                 })
                 .catch(function() {
-                    audioPlayer.src = ttsUrl;
-                    return audioPlayer.play().catch(function() {
-                        showToast('音频播放失败', 'error');
-                    });
+                    // Try browser TTS (works on desktop Chrome/Edge)
+                    var u = new SpeechSynthesisUtterance(text);
+                    u.lang = 'ja-JP';
+                    u.rate = 0.9;
+                    u.volume = 1;
+                    var voices = window.speechSynthesis.getVoices();
+                    var ja = voices.find(function(v) { return v.lang.startsWith('ja'); });
+                    if (ja) u.voice = ja;
+                    u.onerror = function() {
+                        // Browser TTS failed, try Google TTS as last resort
+                        var ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
+                        audioPlayer.src = ttsUrl;
+                        audioPlayer.play().catch(function() {
+                            showToast('音频播放失败', 'error');
+                        });
+                    };
+                    window.speechSynthesis.speak(u);
                 });
         });
 
