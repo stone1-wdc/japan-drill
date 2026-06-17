@@ -7,7 +7,7 @@ from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
 
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "japanese.db")
+DATABASE = os.path.join("/tmp" if os.environ.get("VERCEL") else os.path.dirname(os.path.abspath(__file__)), "japanese.db")
 BOOK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "book", "chapters")
 
 
