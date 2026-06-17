@@ -316,59 +316,34 @@
             btnGrammar.disabled = false;
         }
 
-        // Audio
-        var voicesReady = false;
-        function loadVoices() {
-            return new Promise(function(resolve) {
-                var voices = window.speechSynthesis.getVoices();
-                if (voices.length > 0) { voicesReady = true; resolve(); return; }
-                window.speechSynthesis.addEventListener('voiceschanged', function() {
-                    voicesReady = true; resolve();
-                }, { once: true });
-            });
-        }
-        loadVoices();
-
-        btnAudio.addEventListener('click', () => {
-            // Stop any ongoing speech
-            window.speechSynthesis.cancel();
+        // Audio - uses Google TTS for reliable mobile playback
+        btnAudio.addEventListener('click', function() {
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
 
-            const cur = sentences[currentIndex];
-            const text = cur.reading || cur.jp || '';
+            var cur = sentences[currentIndex];
+            var text = cur.reading || cur.jp || '';
             if (!text) { showToast('无文本可读', 'error'); return; }
 
-            // Try API first, fall back to browser TTS
+            // Try local audio file first, fall back to Google TTS
+            var ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
+            
             fetch('/api/audio?chapter=' + currentChapter + '&sentence_index=' + currentIndex)
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (data.url) {
                         audioPlayer.src = data.url;
-                        audioPlayer.play().catch(function() { speakWithTTS(text); });
                     } else {
-                        speakWithTTS(text);
+                        audioPlayer.src = ttsUrl;
                     }
+                    return audioPlayer.play();
                 })
-                .catch(function() { speakWithTTS(text); });
-
-            function speakWithTTS(text) {
-                window.speechSynthesis.cancel();
-                var u = new SpeechSynthesisUtterance(text);
-                u.lang = 'ja-JP';
-                u.rate = 0.9;
-                u.pitch = 1;
-                u.volume = 1;
-                var voices = window.speechSynthesis.getVoices();
-                var jaVoice = voices.find(function(v) { return v.lang.startsWith('ja'); });
-                if (jaVoice) u.voice = jaVoice;
-                u.onerror = function(e) {
-                    if (e.error !== 'canceled' && e.error !== 'interrupted') {
-                        showToast('语音播放失败', 'error');
-                    }
-                };
-                setTimeout(function() { window.speechSynthesis.speak(u); }, 100);
-            }
+                .catch(function() {
+                    audioPlayer.src = ttsUrl;
+                    return audioPlayer.play().catch(function() {
+                        showToast('音频播放失败', 'error');
+                    });
+                });
         });
 
         // Grammar modal
