@@ -316,11 +316,10 @@
             btnGrammar.disabled = false;
         }
 
-        // Audio - browser TTS first, Google TTS fallback
+        // Audio - tries multiple TTS sources
         btnAudio.addEventListener('click', function() {
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
-            window.speechSynthesis.cancel();
 
             var cur = sentences[currentIndex];
             var text = cur.reading || cur.jp || '';
@@ -337,23 +336,22 @@
                     throw new Error('no file');
                 })
                 .catch(function() {
-                    // Try browser TTS (works on desktop Chrome/Edge)
-                    var u = new SpeechSynthesisUtterance(text);
-                    u.lang = 'ja-JP';
-                    u.rate = 0.9;
-                    u.volume = 1;
-                    var voices = window.speechSynthesis.getVoices();
-                    var ja = voices.find(function(v) { return v.lang.startsWith('ja'); });
-                    if (ja) u.voice = ja;
-                    u.onerror = function() {
-                        // Browser TTS failed, try Google TTS as last resort
-                        var ttsUrl = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
-                        audioPlayer.src = ttsUrl;
+                    // Fallback 1: Youdao TTS (accessible in China)
+                    audioPlayer.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&le=jap';
+                    audioPlayer.play().catch(function() {
+                        // Fallback 2: Google TTS
+                        audioPlayer.src = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
                         audioPlayer.play().catch(function() {
-                            showToast('音频播放失败', 'error');
+                            // Fallback 3: Browser TTS
+                            var u = new SpeechSynthesisUtterance(text);
+                            u.lang = 'ja-JP'; u.rate = 0.9; u.volume = 1;
+                            var voices = speechSynthesis.getVoices();
+                            var ja = voices.find(function(v) { return v.lang.startsWith('ja'); });
+                            if (ja) u.voice = ja;
+                            u.onerror = function() { showToast('音频播放失败', 'error'); };
+                            speechSynthesis.speak(u);
                         });
-                    };
-                    window.speechSynthesis.speak(u);
+                    });
                 });
         });
 
