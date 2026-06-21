@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -16,19 +16,22 @@
             }
         }
     </script>
+    <style>
+        .tab-active { color: #1d4ed8; border-bottom: 2px solid #1d4ed8; }
+        .tab-inactive { color: #9ca3af; border-bottom: 2px solid transparent; }
+        .tab-inactive:hover { color: #6b7280; }
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-
-    <div class="max-w-[600px] mx-auto min-h-screen bg-white shadow-sm">
-
-        <!-- Header -->
-        <header class="px-5 py-4 border-b border-gray-200">
-            <h1 class="text-xl font-bold text-gray-800 tracking-wide">日语练习本</h1>
-        </header>
+<body class="bg-white min-h-screen">
+    <div class="max-w-[640px] mx-auto min-h-screen shadow-sm">
 
         <!-- Login Screen -->
         <div id="login-screen" class="px-5 py-16 text-center">
-            <p class="text-gray-500 text-sm mb-6">输入用户名开始练习</p>
+            <p class="text-gray-400 text-sm mb-6">输入用户名开始练习</p>
             <input id="username-input" type="text" placeholder="用户名" autocomplete="off"
                 class="w-full max-w-xs border border-gray-300 rounded-lg px-4 py-2.5 text-base text-gray-700
                        focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-center mb-4"/>
@@ -39,227 +42,413 @@
             </button>
         </div>
 
-        <!-- Practice Screen -->
-        <div id="practice-screen" class="hidden px-5 py-6">
+        <!-- Main Screen -->
+        <div id="main-screen" class="hidden">
 
-            <!-- Progress + Unit -->
-            <div class="mb-3 text-sm text-gray-500">
-                <span id="progress-label">第1课 第1句</span>
-                <span id="unit-label" class="ml-3 text-blue-500"></span>
-                <span id="progress-count" class="float-right text-gray-400"></span>
-            </div>
+            <!-- Header with Tabs -->
+            <header class="px-5 pt-4 pb-0 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-800 tracking-wide mb-3">日语练习本</h1>
+                <nav class="flex gap-6">
+                    <button data-tab="vocab" class="tab-btn tab-active pb-2.5 text-sm font-medium transition-colors" onclick="switchTab('vocab')">单词</button>
+                    <button data-tab="grammar" class="tab-btn tab-inactive pb-2.5 text-sm font-medium transition-colors" onclick="switchTab('grammar')">语法</button>
+                    <button data-tab="listening" class="tab-btn tab-inactive pb-2.5 text-sm font-medium transition-colors" onclick="switchTab('listening')">听力</button>
+                </nav>
+            </header>
+            <!-- ====== TAB: VOCAB ====== -->
+            <div id="tab-vocab" class="px-5 py-5 fade-in">
 
-            <!-- Navigation -->
-            <div class="flex items-center gap-2 mb-4">
-                <button id="btn-prev"
-                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
-                           text-gray-600 text-sm py-2 rounded-lg transition-colors
-                           flex items-center justify-center gap-1 disabled:opacity-30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-                    上一句
-                </button>
-                <button id="btn-skip"
-                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
-                           text-gray-600 text-sm py-2 rounded-lg transition-colors
-                           flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                    跳过
-                </button>
-                <select id="chapter-select"
-                    class="flex-1 bg-white border border-gray-300 text-gray-600 text-sm py-2 px-2 rounded-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-400">
-                </select>
-            <select id="day-select"
-                    class="flex-1 bg-white border border-gray-300 text-gray-600 text-sm py-2 px-2 rounded-lg
-                           focus:outline-none focus:ring-2 focus:ring-blue-400">
-                </select>
-            </div>
+                <!-- Progress + Unit -->
+                <div class="mb-3 text-sm text-gray-500 flex items-center justify-between">
+                    <div>
+                        <span id="progress-label">第1课 第1句</span>
+                        <span id="unit-label" class="ml-3 text-blue-500"></span>
+                    </div>
+                    <span id="progress-count" class="text-gray-400"></span>
+                </div>
 
-            <!-- Sentence card -->
-            <div class="bg-gray-50 border border-gray-200 rounded-xl px-6 py-8 mb-4 min-h-[140px]
-                        flex flex-col items-center justify-center gap-2">
-                <p id="sentence-text" class="text-2xl text-gray-800 leading-relaxed text-center font-[serif]"></p>
-                <p id="sentence-reading" class="text-sm text-gray-400 text-center"></p>
-            </div>
+                <!-- Scene Image -->
+                <div class="mb-4 rounded-lg overflow-hidden bg-gray-50" style="aspect-ratio: 16/9; max-height: 340px;">
+                    <img id="scene-image" src="" alt="" class="w-full h-full object-cover hidden" onerror="this.classList.add('hidden'); document.getElementById('img-placeholder').classList.remove('hidden')">
+                    <div id="img-placeholder" class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+                        <svg class="w-12 h-12 text-blue-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </div>
+                </div>
 
-            <!-- Action buttons -->
-            <div class="flex gap-3 mb-4">
-                <button id="btn-audio"
-                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
-                           text-gray-700 font-medium py-2.5 rounded-lg transition-colors text-sm
-                           flex items-center justify-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
-                    播放音频
-                </button>
-                <button id="btn-grammar"
-                    class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 active:bg-gray-100
-                           text-gray-700 font-medium py-2.5 rounded-lg transition-colors text-sm
-                           flex items-center justify-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    语法帮助
-                </button>
-                <button id="btn-translate"
-                    class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
-                           text-white font-medium py-2.5 rounded-lg transition-colors text-sm
-                           flex items-center justify-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    翻译提交
-                </button>
-            </div>
+                <!-- Navigation -->
+                <div class="flex items-center gap-2 mb-4">
+                    <button id="btn-prev"
+                        class="flex-1 bg-gray-50 hover:bg-gray-100 active:bg-gray-200
+                               text-gray-600 text-sm py-2 rounded-lg transition-colors
+                               flex items-center justify-center gap-1 disabled:opacity-30">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                        上一句
+                    </button>
+                    <button id="btn-skip"
+                        class="flex-1 bg-gray-50 hover:bg-gray-100 active:bg-gray-200
+                               text-gray-600 text-sm py-2 rounded-lg transition-colors
+                               flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                        下一句
+                    </button>
+                    <select id="chapter-select"
+                        class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-sm py-2 px-2 rounded-lg
+                               focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </select>
+                    <select id="day-select"
+                        class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-sm py-2 px-2 rounded-lg
+                               focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    </select>
+                </div>
 
-            <button id="btn-expand"
-                class="w-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300
-                       text-gray-600 font-medium py-2.5 rounded-lg transition-colors text-sm mb-4
-                       flex items-center justify-center gap-1.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M19 9l-7 7-7-7"/>
-                </svg>
-                展开
-            </button>
+                <!-- Sentence card -->
+                <div class="bg-gray-50 border border-gray-100 rounded-lg px-6 py-8 mb-4 min-h-[100px]
+                            flex flex-col items-center justify-center gap-2">
+                    <p id="sentence-text" class="text-xl text-gray-800 leading-relaxed text-center font-[serif]"></p>
+                    <p id="sentence-reading" class="text-sm text-gray-400 text-center"></p>
+                </div>
 
-            <div id="expand-list" class="hidden mb-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100"></div>
-
-            <!-- Translation input area -->
-            <div id="translate-area" class="hidden mb-4">
-                <input id="reading-input" type="text" placeholder="输入读音（かな）..."
-                    autocomplete="off"
-                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm mb-2
-                           focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
-                <div class="flex gap-2">
-                    <input id="translate-input" type="text" placeholder="输入中文翻译..."
-                        autocomplete="off"
-                        class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-base
-                               focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
-                    <button id="btn-check"
-                        class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
-                               font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
-                        检查
+                <!-- Action buttons -->
+                <div class="flex gap-3 mb-4">
+                    <button id="btn-audio"
+                        class="flex-1 bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100
+                               text-gray-700 font-medium py-2.5 rounded-lg transition-colors text-sm
+                               flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+                        播放音频
+                    </button>
+                    <button id="btn-translate"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
+                               text-white font-medium py-2.5 rounded-lg transition-colors text-sm
+                               flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        翻译提交
                     </button>
                 </div>
-                <p id="translate-feedback" class="text-sm mt-2 min-h-[20px]"></p>
-            </div>
 
-            <button id="btn-answer"
-                class="w-full bg-yellow-100 hover:bg-yellow-200 active:bg-yellow-300
-                       text-yellow-700 font-medium py-2 rounded-lg transition-colors text-sm mb-3">
-                查看答案
-            </button>
-            <div id="answer-area" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p class="text-sm text-gray-600"><span class="font-medium">读音：</span><span id="answer-reading"></span></p>
-                <p class="text-sm text-gray-600 mt-1"><span class="font-medium">翻译：</span><span id="answer-zh"></span></p>
+                <button id="btn-expand"
+                    class="w-full bg-gray-50 hover:bg-gray-100 active:bg-gray-200
+                           text-gray-500 font-medium py-2.5 rounded-lg transition-colors text-sm mb-4
+                           flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M19 9l-7 7-7-7"/>
+                    </svg>
+                    展开
+                </button>
+
+                <div id="expand-list" class="hidden mb-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100"></div>
+
+                <!-- Translation input area -->
+                <div id="translate-area" class="hidden mb-4">
+                    <input id="reading-input" type="text" placeholder="输入读音（かな）..."
+                        autocomplete="off"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm mb-2
+                               focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
+                    <div class="flex gap-2">
+                        <input id="translate-input" type="text" placeholder="输入中文翻译..."
+                            autocomplete="off"
+                            class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-base
+                                   focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
+                        <button id="btn-check"
+                            class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white
+                                   font-medium px-6 py-2.5 rounded-lg transition-colors text-sm">
+                            检查
+                        </button>
+                    </div>
+                    <p id="translate-feedback" class="text-sm mt-2 min-h-[20px]"></p>
+                </div>
+
+                <button id="btn-answer"
+                    class="w-full bg-yellow-50 hover:bg-yellow-100 active:bg-yellow-200
+                           text-yellow-700 font-medium py-2 rounded-lg transition-colors text-sm mb-3">
+                    查看答案
+                </button>
+                <div id="answer-area" class="hidden mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-sm text-gray-600"><span class="font-medium">读音：</span><span id="answer-reading"></span></p>
+                    <p class="text-sm text-gray-600 mt-1"><span class="font-medium">翻译：</span><span id="answer-zh"></span></p>
+                </div>
+            </div>
+            
+
+            <!-- ====== TAB: GRAMMAR ====== -->
+            <div id="tab-grammar" class="hidden px-5 py-5 fade-in">
+
+                <!-- Sub-tabs -->
+                <div class="flex gap-4 mb-4 border-b border-gray-100">
+                    <button id="grammar-sub-browse" class="tab-active pb-2 text-sm font-medium transition-colors" onclick="grammarShowBrowse()">浏览学习</button>
+                    <button id="grammar-sub-records" class="tab-inactive pb-2 text-sm font-medium transition-colors" onclick="grammarShowRecords()">掌握记录</button>
+                </div>
+
+                <!-- Browse View -->
+                <div id="grammar-browse-view">
+                    <!-- Week / Day Navigation -->
+                    <div class="flex items-center gap-2 mb-4">
+                        <select id="grammar-week-select" class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-sm py-2 px-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+                        <select id="grammar-day-select" class="flex-1 bg-gray-50 border border-gray-200 text-gray-600 text-sm py-2 px-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+                    </div>
+
+                    <!-- Grammar Point Navigation -->
+                    <div class="flex items-center gap-2 mb-4">
+                        <button id="grammar-prev-btn" class="flex-1 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-30">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                            上一个
+                        </button>
+                        <span id="grammar-point-label" class="text-sm text-gray-400 text-center flex-shrink-0 px-2">-</span>
+                        <button id="grammar-next-btn" class="flex-1 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 text-sm py-2 rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-30">
+                            下一个
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                        </button>
+                        <button id="grammar-expand-btn" class="flex-shrink-0 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-500 text-sm py-2 px-3 rounded-lg transition-colors flex items-center gap-1" onclick="grammarToggleExpand()">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                            展开
+                        </button>
+                    </div>
+
+                    <!-- Expand List -->
+                    <div id="grammar-expand-list" class="hidden mb-4 bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto"></div>
+
+                    <!-- Grammar Point Card -->
+                    <div id="grammar-point-view" class="bg-white border border-gray-100 rounded-lg p-5 mb-4 min-h-[120px]">
+                        <p class="text-sm text-center text-gray-400 py-8">请选择章节和单元</p>
+                    </div>
+
+                    <!-- Quiz Button -->
+                    <button id="grammar-start-quiz" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm hidden" onclick="grammarStartQuiz()">
+                        记住了，出题
+                    </button>
+                </div>
+
+                    <!-- Quiz View (2-step) -->
+                    <div id="grammar-quiz-view" class="hidden">
+                        <button onclick="grammarBackFromQuiz()" class="text-blue-500 text-sm mb-3 flex items-center gap-1 hover:text-blue-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                            返回
+                        </button>
+
+                        <div id="grammar-q-progress" class="text-xs text-gray-400 mb-3"></div>
+
+                        <div id="grammar-quiz-cards" class="space-y-4"></div>
+
+                        <div id="grammar-quiz-actions" class="flex gap-2 mt-4 hidden">
+                            <button id="grammar-quiz-audio-btn" class="flex-1 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1" onclick="grammarQuizPlayAudio()">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                播放
+                            </button>
+                            <button id="grammar-quiz-answer-btn" class="flex-1 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 text-sm py-2.5 rounded-lg transition-colors" onclick="grammarQuizShowAnswer()">查看答案</button>
+                            <button id="grammar-quiz-submit-btn" class="flex-1 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm" onclick="grammarSubmitQuizStep()">提交</button>
+                            <button id="grammar-quiz-done-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm hidden" >完成</button>
+                        </div>
+
+                        <p id="grammar-quiz-feedback" class="text-sm mt-4 min-h-[24px] text-center"></p>
+
+                        <div id="grammar-quiz-answer-reveal" class="hidden mt-3 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-xs text-blue-500 font-medium mb-1">正确答案</p>
+                            <p id="grammar-quiz-answer-text" class="text-sm text-gray-700"></p>
+                        </div>
+                    </div>
+                
+                
+
+                <!-- Records View -->
+                <div id="grammar-records-view" class="hidden">
+                    <div class="flex gap-2 mb-4">
+                        <button id="records-mastered-btn" class="flex-1 py-2 text-sm font-medium rounded-lg bg-green-50 text-green-700 border border-green-200" onclick="grammarFilterRecords('mastered')">已掌握</button>
+                        <button id="records-unmastered-btn" class="flex-1 py-2 text-sm font-medium rounded-lg bg-white text-gray-500 border border-gray-200" onclick="grammarFilterRecords('unmastered')">未掌握</button>
+                    </div>
+                    <div id="grammar-records-container" class="space-y-3"></div>
+                </div>
+            </div>
+            <!-- ====== TAB: LISTENING ====== -->
+            <div id="tab-listening" class="hidden px-5 py-5 fade-in">
+
+                <!-- List View -->
+                <div id="listening-list-view">
+                    <div id="listening-list" class="space-y-3"></div>
+                    <div id="listening-empty" class="hidden text-center py-16 text-gray-400">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-200" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+                        <p class="text-sm">暂无听力素材</p>
+                        <p class="text-xs mt-1">请在 static/listening/ 目录添加 JSON 文件</p>
+                    </div>
+                </div>
+
+                <!-- Practice View -->
+                <div id="listening-practice-view" class="hidden">
+                    <button onclick="listeningBackToList()" class="text-blue-500 text-sm mb-4 flex items-center gap-1 hover:text-blue-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                        返回列表
+                    </button>
+
+                    <h3 id="listening-title" class="text-lg font-semibold text-gray-800 mb-1"></h3>
+                    <p id="listening-translation-preview" class="text-sm text-gray-400 mb-4"></p>
+
+                    <!-- Pass 1 -->
+                    <div id="listening-pass1">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xs font-medium text-blue-500 bg-blue-50 px-2 py-0.5 rounded">第一遍</span>
+                            <span class="text-xs text-gray-400">仔细听，关注助词、语法链接和核心名词</span>
+                        </div>
+                        <button id="listening-play1-btn" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-3 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            播放第一遍
+                        </button>
+                        <div id="listening-pass1-inputs" class="hidden space-y-4 mb-4">
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 mb-1.5 block">助词（助詞）</label>
+                                <div id="listening-particles-inputs" class="space-y-2"></div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 mb-1.5 block">语法链接</label>
+                                <div id="listening-grammar-inputs" class="space-y-2"></div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 mb-1.5 block">核心名词</label>
+                                <div id="listening-nouns-inputs" class="space-y-2"></div>
+                            </div>
+                            <button id="listening-pass1-submit" class="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm">提交</button>
+                        </div>
+                        <div id="listening-pass1-results" class="hidden mb-4 p-3 bg-gray-50 rounded-lg space-y-2 text-sm"></div>
+                    </div>
+
+                    <!-- Pass 2 -->
+                    <div id="listening-pass2" class="hidden border-t border-gray-100 pt-4 mt-2">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xs font-medium text-orange-500 bg-orange-50 px-2 py-0.5 rounded">第二遍</span>
+                            <span class="text-xs text-gray-400">再次播放，然后查看原文</span>
+                        </div>
+                        <button id="listening-play2-btn" class="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium py-3 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            播放第二遍
+                        </button>
+                        <div id="listening-pass2-reveal" class="hidden p-4 bg-gray-50 rounded-lg">
+                            <p class="text-xs text-gray-400 mb-2">原文</p>
+                            <p id="listening-full-text" class="text-lg text-gray-800 leading-relaxed font-[serif]"></p>
+                            <p class="text-xs text-gray-400 mt-3 mb-1">翻译</p>
+                            <p id="listening-full-translation" class="text-sm text-gray-600"></p>
+                            <div id="listening-answer-comparison" class="mt-4 space-y-2 text-sm"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Toast -->
             <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg
                         text-sm font-medium shadow-lg z-50 transition-all duration-300"></div>
-        </div>
-
-        <!-- Grammar Modal -->
-        <div id="grammar-modal" class="hidden fixed inset-0 z-40 flex items-end sm:items-center justify-center">
-            <div class="absolute inset-0 bg-black/40" id="modal-overlay"></div>
-            <div class="relative bg-white w-full max-w-[600px] max-h-[80vh] rounded-t-2xl sm:rounded-2xl
-                        overflow-hidden flex flex-col shadow-xl">
-                <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-800">语法搜索</h3>
-                    <button id="modal-close" class="text-gray-400 hover:text-gray-600 p-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <div class="px-5 py-3 border-b border-gray-100">
-                    <input id="grammar-search" type="text" placeholder="输入关键词..."
-                        autocomplete="off"
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
-                </div>
-                <div id="grammar-results" class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-                    <p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>
-                </div>
-            </div>
-        </div>
+        </div><!-- end main-screen -->
 
         <audio id="audio-player" class="hidden"></audio>
     </div>
-
     <script>
-        // State
-        let username = '';
+        // ============ GLOBAL STATE ============
+        let username = "";
+        let currentTab = "vocab";
+
+        // Vocab state
         let currentChapter = 1;
         let currentIndex = 0;
         let sentences = [];
         let totalInChapter = 0;
         let units = [];
 
-        // DOM refs
-        const loginScreen = document.getElementById('login-screen');
-        const practiceScreen = document.getElementById('practice-screen');
-        const usernameInput = document.getElementById('username-input');
-        const startBtn = document.getElementById('start-btn');
-        const progressLabel = document.getElementById('progress-label');
-        const unitLabel = document.getElementById('unit-label');
-        const progressCount = document.getElementById('progress-count');
-        const sentenceText = document.getElementById('sentence-text');
-        const sentenceReading = document.getElementById('sentence-reading');
-        const btnAudio = document.getElementById('btn-audio');
-        const btnGrammar = document.getElementById('btn-grammar');
-        const btnTranslate = document.getElementById('btn-translate');
-        const btnPrev = document.getElementById('btn-prev');
-        const btnSkip = document.getElementById('btn-skip');
-        const chapterSelect = document.getElementById('chapter-select');
-        const daySelect = document.getElementById('day-select');
-        const btnExpand = document.getElementById('btn-expand');
-        const expandList = document.getElementById('expand-list');
-        const translateArea = document.getElementById('translate-area');
-        const readingInput = document.getElementById('reading-input');
-        const translateInput = document.getElementById('translate-input');
-        const btnCheck = document.getElementById('btn-check');
-        const translateFeedback = document.getElementById('translate-feedback');
-        const answerArea = document.getElementById('answer-area');
-        const btnAnswer = document.getElementById('btn-answer');
-        const answerReading = document.getElementById('answer-reading');
-        const answerZh = document.getElementById('answer-zh');
-        const toast = document.getElementById('toast');
-        const grammarModal = document.getElementById('grammar-modal');
-        const modalOverlay = document.getElementById('modal-overlay');
-        const modalClose = document.getElementById('modal-close');
-        const grammarSearch = document.getElementById('grammar-search');
-        const grammarResults = document.getElementById('grammar-results');
-        const audioPlayer = document.getElementById('audio-player');
+        // Grammar state
+        let grammarDayList = [];
+        let grammarProgress = {};
+        let grammarCurrentKey = null;
+        let grammarCurrentQuiz = null;
+        let grammarView = "browse";
+        let grammarRecordFilter = "mastered";
+        let grammarCurrentDay = null;
+        let grammarCurrentIdx = 0;
+        let grammarCurrentPoints = [];
 
-        // Login
-        startBtn.addEventListener('click', async () => {
+        // Listening state
+        let listeningMaterials = [];
+        let listeningCurrent = null;
+        let listeningPass = 1;
+        let listeningAnswers = null;
+
+        // ============ DOM REFS ============
+        const loginScreen = document.getElementById("login-screen");
+        const mainScreen = document.getElementById("main-screen");
+        const usernameInput = document.getElementById("username-input");
+        const startBtn = document.getElementById("start-btn");
+        const audioPlayer = document.getElementById("audio-player");
+        const toast = document.getElementById("toast");
+
+        const progressLabel = document.getElementById("progress-label");
+        const unitLabel = document.getElementById("unit-label");
+        const progressCount = document.getElementById("progress-count");
+        const sentenceText = document.getElementById("sentence-text");
+        const sentenceReading = document.getElementById("sentence-reading");
+        const sceneImage = document.getElementById("scene-image");
+        const imgPlaceholder = document.getElementById("img-placeholder");
+        const btnPrev = document.getElementById("btn-prev");
+        const btnSkip = document.getElementById("btn-skip");
+        const chapterSelect = document.getElementById("chapter-select");
+        const daySelect = document.getElementById("day-select");
+        const btnExpand = document.getElementById("btn-expand");
+        const expandList = document.getElementById("expand-list");
+        const btnAudio = document.getElementById("btn-audio");
+        const btnTranslate = document.getElementById("btn-translate");
+        const translateArea = document.getElementById("translate-area");
+        const readingInput = document.getElementById("reading-input");
+        const translateInput = document.getElementById("translate-input");
+        const btnCheck = document.getElementById("btn-check");
+        const translateFeedback = document.getElementById("translate-feedback");
+        const btnAnswer = document.getElementById("btn-answer");
+        const answerArea = document.getElementById("answer-area");
+        const answerReading = document.getElementById("answer-reading");
+        const answerZh = document.getElementById("answer-zh");
+
+        // ============ LOGIN ============
+        startBtn.addEventListener("click", async () => {
             const name = usernameInput.value.trim();
             if (!name) return;
             username = name;
             startBtn.disabled = true;
-            startBtn.textContent = '加载中...';
+            startBtn.textContent = "加载中...";
             try {
-                const progRes = await fetch('/api/progress?username=' + encodeURIComponent(username));
+                const progRes = await fetch("/api/progress?username=" + encodeURIComponent(username));
                 const prog = await progRes.json();
                 currentChapter = prog.chapter;
                 currentIndex = prog.sentence_index;
                 await loadChapter(currentChapter);
-                loginScreen.classList.add('hidden');
-                practiceScreen.classList.remove('hidden');
-                loadChapterList();
+                await loadChapterList();
+                loginScreen.classList.add("hidden");
+                mainScreen.classList.remove("hidden");
             } catch (e) {
-                showToast('连接失败，请重试', 'error');
+                showToast("连接失败，请重试", "error");
                 startBtn.disabled = false;
-                startBtn.textContent = '开始学习';
+                startBtn.textContent = "开始学习";
             }
         });
-        usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') startBtn.click(); });
+        usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startBtn.click(); });
 
-        // Load chapter
+        // ============ TAB SWITCHING ============
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll(".tab-btn").forEach(b => {
+                b.className = b.dataset.tab === tab
+                    ? "tab-btn tab-active pb-2.5 text-sm font-medium transition-colors"
+                    : "tab-btn tab-inactive pb-2.5 text-sm font-medium transition-colors";
+            });
+            document.getElementById("tab-vocab").classList.toggle("hidden", tab !== "vocab");
+            document.getElementById("tab-grammar").classList.toggle("hidden", tab !== "grammar");
+            document.getElementById("tab-listening").classList.toggle("hidden", tab !== "listening");
+
+            if (tab === "grammar" && grammarDayList.length === 0) loadGrammarData();
+            if (tab === "listening" && listeningMaterials.length === 0) loadListeningList();
+        }
+
+        // ============ VOCAB TAB ============
+
         async function loadChapter(chNum) {
-            const res = await fetch('/api/chapter/' + chNum);
+            const res = await fetch("/api/chapter/" + chNum);
             if (!res.ok) {
-                sentenceText.textContent = '\uD83C\uDF89 全部完成！';
-                progressLabel.textContent = '恭喜';
-                unitLabel.textContent = '';
-                progressCount.textContent = '';
+                sentenceText.textContent = "🎉 全部完成！";
+                progressLabel.textContent = "恭喜";
+                unitLabel.textContent = "";
+                progressCount.textContent = "";
                 btnAudio.disabled = true;
                 btnTranslate.disabled = true;
-                btnGrammar.disabled = true;
                 sentences = [];
                 units = [];
                 return;
@@ -278,137 +467,138 @@
             for (const u of units) {
                 if (currentIndex >= u.start && currentIndex < u.end) return u.name;
             }
-            return '';
+            return "";
         }
 
         function populateDaySelect() {
-            var h = '';
-            for (var i = 0; i < units.length; i++) {
-                var u = units[i];
-                var sel = (currentIndex >= u.start && currentIndex < u.end) ? ' selected' : '';
-                h += '<option value="' + u.start + '"' + sel + '>' + u.name + '</option>';
+            let h = "";
+            for (let i = 0; i < units.length; i++) {
+                const u = units[i];
+                const sel = (currentIndex >= u.start && currentIndex < u.end) ? " selected" : "";
+                h += '<option value="' + u.start + '"' + sel + ">" + u.name + "</option>";
             }
-            daySelect.innerHTML = h || '<option>无</option>';
+            daySelect.innerHTML = h || "<option>无</option>";
         }
 
-        // Render sentence
         function renderSentence() {
             if (sentences.length === 0) return;
             const cur = sentences[currentIndex];
-            sentenceText.textContent = cur.jp || '';
-            sentenceReading.textContent = cur.reading || '';
-            progressLabel.textContent = '\u7B2C' + currentChapter + '\u8BFE  \u7B2C' + (currentIndex + 1) + '\u53E5';
+            sentenceText.textContent = cur.jp || "";
+            sentenceReading.textContent = cur.reading || "";
+            progressLabel.textContent = "第" + currentChapter + "课  第" + (currentIndex + 1) + "句";
             unitLabel.textContent = getCurrentUnit();
-            for (var di = 0; di < daySelect.options.length; di++) {
+            for (let di = 0; di < daySelect.options.length; di++) {
                 daySelect.options[di].selected = (currentIndex >= units[di].start && currentIndex < units[di].end);
             }
-            expandList.classList.add('hidden');
-            expandList.innerHTML = '';
-            progressCount.textContent = (currentIndex + 1) + ' / ' + totalInChapter;
-            answerArea.classList.add('hidden');
-            translateArea.classList.add('hidden');
-            readingInput.value = '';
-            translateInput.value = '';
-            translateFeedback.textContent = '';
-            translateFeedback.className = 'text-sm mt-2 min-h-[20px]';
+            expandList.classList.add("hidden");
+            expandList.innerHTML = "";
+            progressCount.textContent = (currentIndex + 1) + " / " + totalInChapter;
+            answerArea.classList.add("hidden");
+            translateArea.classList.add("hidden");
+            readingInput.value = "";
+            translateInput.value = "";
+            translateFeedback.textContent = "";
+            translateFeedback.className = "text-sm mt-2 min-h-[20px]";
             btnAudio.disabled = false;
             btnTranslate.disabled = false;
-            btnGrammar.disabled = false;
+            loadSceneImage(currentChapter, currentIndex);
+            autoPlayAudio();
         }
 
-        // Audio playback
-        btnAudio.addEventListener('click', function() {
+        async function loadSceneImage(ch, idx) {
+            sceneImage.classList.add("hidden");
+            imgPlaceholder.classList.remove("hidden");
+            try {
+                const res = await fetch("/api/image?chapter=" + ch + "&sentence_index=" + idx);
+                const data = await res.json();
+                if (data.url) {
+                    sceneImage.src = data.url;
+                    sceneImage.classList.remove("hidden");
+                    imgPlaceholder.classList.add("hidden");
+                }
+            } catch (e) {}
+        }
+
+        // Auto-play audio on sentence change
+        function autoPlayAudio() {
+            if (sentences.length === 0) return;
+            const cur = sentences[currentIndex];
+            const text = cur.reading || cur.jp || "";
+            if (!text) return;
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
-            var cur = sentences[currentIndex];
-            var text = cur.reading || cur.jp || '';
-            if (!text) { showToast('无文本可读', 'error'); return; }
-            audioPlayer.src = '/api/tts?text=' + encodeURIComponent(text);
-            var p = audioPlayer.play();
-            if (p) p.catch(function() { showToast('音频播放失败', 'error'); });
-        });        // Grammar modal
-        function openModal() { grammarModal.classList.remove('hidden'); grammarSearch.value = ''; grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>'; setTimeout(() => grammarSearch.focus(), 100); }
-        function closeModal() { grammarModal.classList.add('hidden'); }
-        btnGrammar.addEventListener('click', openModal);
-        modalClose.addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', closeModal);
-        let grammarDebounce = null;
-        grammarSearch.addEventListener('input', () => { clearTimeout(grammarDebounce); grammarDebounce = setTimeout(searchGrammar, 300); });
-        async function searchGrammar() {
-            const keyword = grammarSearch.value.trim();
-            if (!keyword) { grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">输入关键词搜索语法</p>'; return; }
-            grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">搜索中...</p>';
-            try {
-                const res = await fetch('/api/grammar?keyword=' + encodeURIComponent(keyword));
-                const items = await res.json();
-                if (items.length === 0) { grammarResults.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">未找到相关语法</p>'; return; }
-                grammarResults.innerHTML = items.map(item => '<div class="border border-gray-200 rounded-lg p-4"><h4 class="font-semibold text-gray-800 mb-1">' + escHtml(item.title) + '</h4><p class="text-sm text-gray-600 mb-3 leading-relaxed">' + escHtml(item.explanation) + '</p><div class="space-y-1.5">' + (item.examples || []).map(ex => '<div class="flex gap-3 text-sm"><span class="text-gray-800 font-[serif] flex-1">' + escHtml(ex.jp) + '</span><span class="text-gray-400 flex-1">' + escHtml(ex.cn) + '</span></div>').join('') + '</div></div>').join('');
-            } catch (e) { grammarResults.innerHTML = '<p class="text-sm text-red-400 text-center py-8">搜索失败</p>'; }
+            audioPlayer.src = "/api/tts?text=" + encodeURIComponent(text);
+            const p = audioPlayer.play();
+            if (p) p.catch(function() {});
         }
 
-        // Translation
-        btnTranslate.addEventListener('click', () => {
+        // Audio
+        btnAudio.addEventListener("click", function() {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
             const cur = sentences[currentIndex];
-            translateArea.classList.remove('hidden');
-            translateFeedback.textContent = '';
-            translateFeedback.className = 'text-sm mt-2 min-h-[20px]';
-            answerArea.classList.add('hidden');
+            const text = cur.reading || cur.jp || "";
+            if (!text) { showToast("无文本可读", "error"); return; }
+            audioPlayer.src = "/api/tts?text=" + encodeURIComponent(text);
+            const p = audioPlayer.play();
+            if (p) p.catch(function() { showToast("音频播放失败", "error"); });
+        });
+
+        // Translation
+        btnTranslate.addEventListener("click", () => {
+            translateArea.classList.remove("hidden");
+            translateFeedback.textContent = "";
+            translateFeedback.className = "text-sm mt-2 min-h-[20px]";
+            answerArea.classList.add("hidden");
             setTimeout(() => readingInput.focus(), 100);
         });
 
-        btnCheck.addEventListener('click', checkTranslation);
-        readingInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') translateInput.focus(); });
-        translateInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkTranslation(); });
+        btnCheck.addEventListener("click", checkTranslation);
+        readingInput.addEventListener("keydown", (e) => { if (e.key === "Enter") translateInput.focus(); });
+        translateInput.addEventListener("keydown", (e) => { if (e.key === "Enter") checkTranslation(); });
 
         async function checkTranslation() {
             const reading = readingInput.value.trim();
             const input = translateInput.value.trim();
             if (!input || input.length < 2) {
-                translateFeedback.textContent = '请输入翻译';
-                translateFeedback.className = 'text-sm mt-2 text-orange-500';
+                translateFeedback.textContent = "请输入翻译";
+                translateFeedback.className = "text-sm mt-2 text-orange-500";
                 return;
             }
-
             const cur = sentences[currentIndex];
-            const refReading = cur.reading || '';
-            const refZh = cur.zh || '';
-
-            // Check pronunciation if reference exists
+            const refReading = cur.reading || "";
+            const refZh = cur.zh || "";
             let readingOk = true;
             if (refReading && reading) {
                 const rCommon = longestCommonSubstring(reading, refReading);
                 readingOk = rCommon.length >= Math.min(refReading.length * 0.5, 2);
             }
-
-            // Check translation
             let transOk = false;
             if (refZh) {
                 const tCommon = longestCommonSubstring(input, refZh);
                 transOk = tCommon.length >= Math.min(refZh.length * 0.5, 3);
             }
-
             if (!readingOk && refReading) {
-                translateFeedback.textContent = '读音不太对，再试试';
-                translateFeedback.className = 'text-sm mt-2 text-orange-500';
+                translateFeedback.textContent = "读音不太对，再试试";
+                translateFeedback.className = "text-sm mt-2 text-orange-500";
             } else if (!transOk) {
-                translateFeedback.textContent = '翻译不太对，再试试';
-                translateFeedback.className = 'text-sm mt-2 text-orange-500';
+                translateFeedback.textContent = "翻译不太对，再试试";
+                translateFeedback.className = "text-sm mt-2 text-orange-500";
             } else {
-                translateFeedback.textContent = '正确！';
-                translateFeedback.className = 'text-sm mt-2 text-green-600';
+                translateFeedback.textContent = "正确！";
+                translateFeedback.className = "text-sm mt-2 text-green-600";
                 try {
-                    await fetch('/api/progress', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                    await fetch("/api/progress", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ username: username, chapter: currentChapter, sentence_index: currentIndex }),
                     });
                 } catch (e) {}
-                showToast('已掌握 \u2713', 'success');
+                showToast("已掌握 ✓", "success");
                 setTimeout(function() { advanceSentence(); }, 600);
             }
         }
 
-        // Matching helper
         function longestCommonSubstring(a, b) {
             let maxLen = 0, end = 0;
             for (let i = 0; i < a.length; i++) {
@@ -421,46 +611,32 @@
             return a.substring(end - maxLen, end);
         }
 
-        function calcMatchScore(input, sentence) {
-            const tokens = [];
-            let run = '';
-            for (const ch of sentence) {
-                if (/[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/.test(ch)) { run += ch; }
-                else { if (run.length >= 2) tokens.push(run); run = ''; }
-            }
-            if (run.length >= 2) tokens.push(run);
-            if (tokens.length === 0) return 1.0;
-            let matched = 0;
-            for (const token of tokens) { if (input.includes(token)) matched++; }
-            return matched / tokens.length;
-        }
-
         // View answer
-        btnAnswer.addEventListener('click', () => {
+        btnAnswer.addEventListener("click", () => {
             const cur = sentences[currentIndex];
-            answerArea.classList.remove('hidden');
-            answerReading.textContent = cur.reading || '（无）';
-            answerZh.textContent = cur.zh || '（无）';
+            answerArea.classList.remove("hidden");
+            answerReading.textContent = cur.reading || "（无）";
+            answerZh.textContent = cur.zh || "（无）";
         });
 
         // Navigation
-        btnPrev.addEventListener('click', () => {
+        btnPrev.addEventListener("click", () => {
             if (currentIndex > 0) { currentIndex--; }
             else if (currentChapter > 1) { currentChapter--; currentIndex = 0; loadChapter(currentChapter); return; }
             renderSentence();
         });
 
-        btnSkip.addEventListener('click', () => { advanceSentence(); });
+        btnSkip.addEventListener("click", () => { advanceSentence(); });
 
         function advanceSentence() {
             currentIndex++;
             if (currentIndex >= sentences.length) {
                 currentIndex = 0;
                 loadChapter(currentChapter + 1).then(() => {
-                    translateArea.classList.add('hidden');
-                    answerArea.classList.add('hidden');
-                    readingInput.value = '';
-                    translateInput.value = '';
+                    translateArea.classList.add("hidden");
+                    answerArea.classList.add("hidden");
+                    readingInput.value = "";
+                    translateInput.value = "";
                 });
             } else {
                 renderSentence();
@@ -469,70 +645,1009 @@
 
         async function loadChapterList() {
             try {
-                const res = await fetch('/api/chapters');
+                const res = await fetch("/api/chapters");
                 const chapters = await res.json();
-                chapterSelect.innerHTML = chapters.map(ch => '<option value="' + ch.number + '">第' + ch.number + '课</option>').join('');
+                chapterSelect.innerHTML = chapters.map(ch => '<option value="' + ch.number + '">第' + ch.number + "课</option>").join("");
                 chapterSelect.value = currentChapter;
             } catch(e) {}
         }
 
-        chapterSelect.addEventListener('change', function() {
+        chapterSelect.addEventListener("change", function() {
             const num = parseInt(this.value);
             if (num !== currentChapter) { currentChapter = num; currentIndex = 0; loadChapter(currentChapter); }
         });
 
-        daySelect.addEventListener('change', function() {
-            var idx = parseInt(this.value);
+        daySelect.addEventListener("change", function() {
+            const idx = parseInt(this.value);
             if (!isNaN(idx) && idx >= 0 && idx < sentences.length) {
                 currentIndex = idx;
                 renderSentence();
             }
         });
 
-        btnExpand.addEventListener('click', function() {
-            if (!expandList.classList.contains('hidden')) {
-                expandList.classList.add('hidden');
-                expandList.innerHTML = '';
+        btnExpand.addEventListener("click", function() {
+            if (!expandList.classList.contains("hidden")) {
+                expandList.classList.add("hidden");
+                expandList.innerHTML = "";
                 return;
             }
-            var uStart = 0, uEnd = sentences.length;
-            for (var i = 0; i < units.length; i++) {
+            let uStart = 0, uEnd = sentences.length;
+            for (let i = 0; i < units.length; i++) {
                 if (currentIndex >= units[i].start && currentIndex < units[i].end) {
                     uStart = units[i].start; uEnd = units[i].end; break;
                 }
             }
-            var h = '';
-            for (var i = uStart; i < uEnd; i++) {
-                var s = sentences[i];
-                var isActive = (i === currentIndex);
-                h += '<div class="px-4 py-3 hover:bg-gray-50 cursor-pointer' + (isActive ? ' bg-blue-50' : '') + '" data-idx="' + i + '">';
-                h += '<p class="text-base text-gray-800">' + escHtml(s.jp || '') + '</p>';
-                if (s.reading) h += '<p class="text-xs text-gray-400 mt-0.5">' + escHtml(s.reading) + '</p>';
-                h += '<p class="text-sm text-gray-500 mt-1">' + escHtml(s.zh || '') + '</p>';
-                h += '</div>';
+            let h = "";
+            for (let i = uStart; i < uEnd; i++) {
+                const s = sentences[i];
+                const isActive = (i === currentIndex);
+                h += '<div class="px-4 py-3 hover:bg-gray-50 cursor-pointer' + (isActive ? " bg-blue-50" : "") + '" data-idx="' + i + '">';
+                h += '<p class="text-base text-gray-800">' + escHtml(s.jp || "") + "</p>";
+                if (s.reading) h += '<p class="text-xs text-gray-400 mt-0.5">' + escHtml(s.reading) + "</p>";
+                h += '<p class="text-sm text-gray-500 mt-1">' + escHtml(s.zh || "") + "</p>";
+                h += "</div>";
             }
             expandList.innerHTML = h;
-            expandList.classList.remove('hidden');
-            var el = expandList.querySelector('[data-idx="' + currentIndex + '"]');
-            if (el) el.scrollIntoView({ block: 'nearest' });
-            expandList.querySelectorAll('div').forEach(function(div) {
-                div.addEventListener('click', function() {
-                    var idx = parseInt(this.getAttribute('data-idx'));
+            expandList.classList.remove("hidden");
+            const el = expandList.querySelector('[data-idx="' + currentIndex + '"]');
+            if (el) el.scrollIntoView({ block: "nearest" });
+            expandList.querySelectorAll("div").forEach(function(div) {
+                div.addEventListener("click", function() {
+                    const idx = parseInt(this.getAttribute("data-idx"));
                     if (!isNaN(idx)) { currentIndex = idx; renderSentence(); }
                 });
             });
         });
+        
 
-        // Toast
+        // ============ GRAMMAR TAB ============
+
+
+        async function loadGrammarData() {
+            try {
+                const [listRes, progRes] = await Promise.all([
+                    fetch("/api/grammar-list"),
+                    fetch("/api/grammar-progress?username=" + encodeURIComponent(username))
+                ]);
+                grammarDayList = await listRes.json();
+                const progArr = await progRes.json();
+                grammarProgress = {};
+                progArr.forEach(p => { grammarProgress[p.grammar_key] = p; });
+
+                populateGrammarSelectors();
+                if (grammarDayList.length > 0) {
+                    const first = grammarDayList[0];
+                    if (first.week) selectGrammarDay(first.week, first.day);
+                    else loadGrammarDayByKey(first.key);
+                }
+            } catch (e) {
+                document.getElementById("grammar-point-view").innerHTML = '<p class="text-sm text-gray-400 text-center py-8">加载失败</p>';
+            }
+        }
+
+        function populateGrammarSelectors() {
+            const weekSel = document.getElementById("grammar-week-select");
+            const daySel = document.getElementById("grammar-day-select");
+
+            // Group by week
+            const weeks = {};
+            grammarDayList.forEach(d => {
+                const w = d.week || 0;
+                if (!weeks[w]) weeks[w] = [];
+                weeks[w].push(d);
+            });
+
+            weekSel.innerHTML = Object.keys(weeks).sort((a,b) => a-b).map(w =>
+                '<option value="' + w + '">第' + w + '週</option>'
+            ).join("");
+
+            weekSel.onchange = function() {
+                const w = parseInt(this.value);
+                const days = weeks[w] || [];
+                daySel.innerHTML = days.sort((a,b) => (a.day||0)-(b.day||0)).map(d =>
+                    '<option value="' + d.key + '" data-day="' + (d.day||0) + '">' + (d.day ? '第' + d.day + '日目' : d.day_title || d.key) + '</option>'
+                ).join("");
+                if (days.length > 0) {
+                    selectGrammarDay(w, days[0].day);
+                }
+            };
+
+            // Initialize day selector for first week
+            const firstWeek = parseInt(weekSel.value) || Object.keys(weeks).sort((a,b) => a-b)[0];
+            const days = weeks[firstWeek] || [];
+            daySel.innerHTML = days.sort((a,b) => (a.day||0)-(b.day||0)).map(d =>
+                '<option value="' + d.key + '" data-day="' + (d.day||0) + '">' + (d.day ? '第' + d.day + '日目' : d.day_title || d.key) + '</option>'
+            ).join("");
+
+            daySel.onchange = function() {
+                const opt = this.selectedOptions[0];
+                const d = parseInt(opt.dataset.day) || 0;
+                const w = parseInt(weekSel.value) || 0;
+                selectGrammarDay(w, d);
+            };
+        }
+
+        async function selectGrammarDay(week, day) {
+            // Update selectors if needed
+            const weekSel = document.getElementById("grammar-week-select");
+            const daySel = document.getElementById("grammar-day-select");
+            if (parseInt(weekSel.value) !== week) weekSel.value = week;
+            // Find matching day option
+            for (const opt of daySel.options) {
+                if (parseInt(opt.dataset.day) === day) {
+                    daySel.value = opt.value;
+                    break;
+                }
+            }
+
+            // Also check single entries (te-form, potential)
+            const dayEntry = grammarDayList.find(d => d.week === week && d.day === day);
+            if (!dayEntry) return;
+
+            try {
+                const res = await fetch("/api/grammar-day?week=" + week + "&day=" + day);
+                const data = await res.json();
+                if (data.error) { showToast("加载失败", "error"); return; }
+
+                grammarCurrentDay = data;
+                grammarCurrentPoints = data.grammar_points || [];
+                grammarCurrentIdx = 0;
+                renderGrammarPoint();
+            } catch (e) {
+                showToast("加载语法内容失败", "error");
+            }
+        }
+
+        async function loadGrammarDayByKey(key) {
+            try {
+                const res = await fetch("/api/grammar-day?key=" + encodeURIComponent(key));
+                const data = await res.json();
+                if (data.error) { showToast("加载失败", "error"); return; }
+
+                grammarCurrentDay = data;
+                grammarCurrentPoints = data.grammar_points || [];
+                grammarCurrentIdx = 0;
+                renderGrammarPoint();
+            } catch (e) {
+                showToast("加载语法内容失败", "error");
+            }
+        }
+
+        function renderGrammarPoint() {
+            if (!grammarCurrentPoints || grammarCurrentPoints.length === 0) {
+                document.getElementById("grammar-point-view").innerHTML = '<p class="text-sm text-gray-400 text-center py-8">暂无语法点</p>';
+                document.getElementById("grammar-start-quiz").classList.add("hidden");
+                return;
+            }
+            if (grammarCurrentIdx >= grammarCurrentPoints.length) grammarCurrentIdx = 0;
+            const gp = grammarCurrentPoints[grammarCurrentIdx];
+            if (!gp) {
+                document.getElementById("grammar-point-view").innerHTML = '<p class="text-sm text-gray-400 text-center py-8">语法点数据缺失</p>';
+                return;
+            }
+
+            // Update navigation
+            document.getElementById("grammar-point-label").textContent =
+                "第" + (grammarCurrentIdx + 1) + "个 / 共" + grammarCurrentPoints.length + "个";
+            document.getElementById("grammar-prev-btn").disabled = grammarCurrentIdx === 0;
+            document.getElementById("grammar-next-btn").disabled = grammarCurrentIdx >= grammarCurrentPoints.length - 1;
+
+            // Get progress for this grammar point
+            const gk = getCurrentGrammarKey();
+            const prog = grammarProgress[gk];
+            const isMastered = prog && prog.status === "mastered";
+            const statusBadge = isMastered ? '<span class="text-xs text-green-500 ml-2">✓ 已掌握</span>' : '';
+
+            // Build HTML
+            let html = '';
+
+            // Title
+            html += '<h3 class="text-lg font-semibold text-gray-800 mb-3">' + escHtml(gp.title || grammarCurrentDay.title || "") + statusBadge + '</h3>';
+
+            // Usage
+            const usage = gp.usage || gp.explanation || "";
+            if (usage) {
+                html += '<div class="bg-blue-50 rounded-lg p-3 mb-3">';
+                html += '<p class="text-xs text-blue-500 font-medium mb-1">用法</p>';
+                html += '<p class="text-sm text-gray-700 leading-relaxed">' + escHtml(usage) + '</p>';
+                html += '</div>';
+            }
+
+            // Conjugation
+            const conj = gp.conjugation || grammarCurrentDay.conjugation || "";
+            if (conj) {
+                html += '<div class="bg-green-50 rounded-lg p-3 mb-3">';
+                html += '<p class="text-xs text-green-500 font-medium mb-1">接续</p>';
+                html += '<p class="text-sm text-gray-700 leading-relaxed">' + escHtml(conj) + '</p>';
+                html += '</div>';
+            }
+
+            // Examples
+            const examples = gp.examples || grammarCurrentDay.examples || [];
+            if (examples.length > 0) {
+                html += '<div class="space-y-3 mt-3">';
+                html += '<p class="text-xs text-gray-400 font-medium">例句</p>';
+                examples.forEach((ex, ei) => {
+                    html += '<div class="py-2 border-b border-gray-100 last:border-0">';
+                    html += '<div class="flex gap-2 items-start">';
+                    html += '<span class="text-gray-800 font-[serif] flex-1 text-sm">' + escHtml(ex.jp) + '</span>';
+                    html += '<button class="grammar-play-btn flex-shrink-0 text-gray-400 hover:text-blue-500 p-1" data-text="' + escHtml(ex.reading || ex.jp) + '" title="播放读音">';
+                    html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>';
+                    html += '</div>';
+                    if (ex.reading) {
+                        html += '<p class="text-xs text-gray-400 mt-0.5">' + escHtml(ex.reading) + '</p>';
+                    }
+                    html += '<p class="text-xs text-gray-400 mt-0.5">' + escHtml(ex.cn) + '</p>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+
+            document.getElementById("grammar-point-view").innerHTML = html;
+
+            // Always show quiz button
+            const quizBtn = document.getElementById("grammar-start-quiz");
+            if (quizBtn) {
+                quizBtn.classList.remove("hidden");
+                quizBtn.textContent = "测验";
+            }
+
+            // Hide quiz view
+            document.getElementById("grammar-quiz-view").classList.add("hidden");
+
+            // Bind audio buttons
+            bindGrammarAudioButtons();
+        }
+
+        function getCurrentGrammarKey() {
+            if (!grammarCurrentDay) return "";
+            const key = grammarCurrentDay.key || "";
+            if (grammarCurrentPoints.length > 1) {
+                return key + "_" + grammarCurrentIdx;
+            }
+            return key;
+        }
+
+        function bindGrammarAudioButtons() {
+            const view = document.getElementById("grammar-point-view");
+            view.querySelectorAll(".grammar-play-btn").forEach(btn => {
+                btn.onclick = function() {
+                    const text = this.dataset.text;
+                    if (!text) return;
+                    audioPlayer.pause();
+                    audioPlayer.currentTime = 0;
+                    audioPlayer.src = "/api/tts?text=" + encodeURIComponent(text);
+                    audioPlayer.play().catch(function() {});
+                };
+            });
+        }
+
+        function grammarPrevPoint() {
+            if (!grammarCurrentPoints || grammarCurrentPoints.length === 0) return;
+            if (grammarCurrentIdx > 0) {
+                grammarCurrentIdx--;
+                renderGrammarPoint();
+            }
+        }
+
+        function grammarNextPoint() {
+            if (!grammarCurrentPoints || grammarCurrentPoints.length === 0) return;
+            if (grammarCurrentIdx < grammarCurrentPoints.length - 1) {
+                grammarCurrentIdx++;
+                renderGrammarPoint();
+            }
+        }
+
+        // Bind prev/next buttons (DOM already loaded, bind directly)
+        (function bindGrammarNav() {
+            const prevBtn = document.getElementById("grammar-prev-btn");
+            const nextBtn = document.getElementById("grammar-next-btn");
+            if (prevBtn) prevBtn.onclick = grammarPrevPoint;
+            if (nextBtn) nextBtn.onclick = grammarNextPoint;
+        })();
+
+        
+        
+        // Expand list
+        let grammarExpanded = false;
+
+        function grammarToggleExpand() {
+            grammarExpanded = !grammarExpanded;
+            const list = document.getElementById("grammar-expand-list");
+            const btn = document.getElementById("grammar-expand-btn");
+            if (grammarExpanded) {
+                list.classList.remove("hidden");
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg> 收起';
+                renderGrammarExpandList();
+            } else {
+                list.classList.add("hidden");
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg> 展开';
+            }
+        }
+
+        function renderGrammarExpandList() {
+            const container = document.getElementById("grammar-expand-list");
+            if (grammarCurrentPoints.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">暂无语法点</p>';
+                return;
+            }
+            container.innerHTML = grammarCurrentPoints.map((gp, i) => {
+                const gk = (grammarCurrentDay && grammarCurrentDay.key ? grammarCurrentDay.key + "_" + i : "");
+                const prog = grammarProgress[gk];
+                const isMastered = prog && prog.status === "mastered";
+                const isActive = i === grammarCurrentIdx;
+                const bg = isActive ? "bg-blue-50 border-blue-200" : isMastered ? "bg-green-50/50" : "bg-white";
+                const dot = isMastered ? '<span class="text-green-500 text-xs mr-1">\u2713</span>' : '<span class="text-gray-300 text-xs mr-1">\u25CB</span>';
+                return '<div class="flex items-center justify-between p-2 rounded cursor-pointer ' + bg + ' border border-gray-100 mb-1 hover:bg-gray-100 transition-colors" onclick="grammarJumpTo(' + i + ')">'
+                    + '<div class="flex items-center gap-1"><span class="text-xs text-gray-400 w-5">' + (i+1) + '.</span>' + dot + '<span class="text-sm text-gray-700">' + escHtml(gp.title || "") + '</span></div>'
+                    + (isActive ? '<span class="text-xs text-blue-400">\u25C0</span>' : '')
+                    + '</div>';
+            }).join("");
+        }
+
+        function grammarJumpTo(idx) {
+            grammarCurrentIdx = idx;
+            renderGrammarPoint();
+            grammarToggleExpand();
+        }
+
+        
+        
+        // Quiz functions
+        let grammarQuizData = null;
+        let grammarQuizStep = 0;
+        let grammarQuizResults = [];
+        let grammarQuizCurrentAudio = "";
+
+        async function grammarStartQuiz() {
+            const gp = grammarCurrentPoints[grammarCurrentIdx];
+            if (!gp) return;
+
+            // Hide browse elements
+            document.getElementById("grammar-point-view").classList.add("hidden");
+            document.getElementById("grammar-start-quiz").classList.add("hidden");
+            document.getElementById("grammar-expand-btn").classList.add("hidden");
+            document.getElementById("grammar-expand-list").classList.add("hidden");
+
+            // Show quiz view
+            const qv = document.getElementById("grammar-quiz-view");
+            qv.classList.remove("hidden");
+            qv.scrollIntoView({ behavior: "smooth" });
+
+            // Reset
+            grammarQuizData = null;
+            grammarQuizStep = 0;
+            grammarQuizResults = [];
+            grammarQuizCurrentAudio = "";
+            document.getElementById("grammar-quiz-feedback").textContent = "";
+            document.getElementById("grammar-quiz-feedback").className = "text-sm mt-4 min-h-[24px] text-center";
+            document.getElementById("grammar-quiz-answer-reveal").classList.add("hidden");
+            document.getElementById("grammar-quiz-actions").classList.add("hidden");
+            document.getElementById("grammar-q-progress").textContent = "加载中...";
+            document.getElementById("grammar-quiz-cards").innerHTML =
+                '<div class="shimmer rounded-lg" style="height:160px"></div>';
+
+            try {
+                const res = await fetch("/api/grammar-quiz", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        title: gp.title || "",
+                        usage: gp.usage || "",
+                        conjugation: gp.conjugation || "",
+                        examples: gp.examples || []
+                    })
+                });
+                const data = await res.json();
+                if (!data || !data.quiz_items || data.quiz_items.length === 0) {
+                    throw new Error("No quiz items");
+                }
+                grammarQuizData = data;
+                grammarQuizStep = 0;
+                grammarQuizResults = [];
+                renderQuizStep();
+            } catch (e) {
+                document.getElementById("grammar-q-progress").textContent = "错误";
+                document.getElementById("grammar-quiz-cards").innerHTML =
+                    '<div class="border border-gray-200 rounded-lg p-5 text-center">'
+                    + '<p class="text-sm text-gray-400 mb-3">题目生成失败</p>'
+                    + '<button class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg text-sm" onclick="grammarBackFromQuiz()">返回</button>'
+                    + '</div>';
+            }
+        }
+
+        function renderGrammarInfoPanel() {
+            // Render grammar knowledge panel that stays visible throughout quiz
+            const gp = grammarCurrentPoints[grammarCurrentIdx];
+            if (!gp) return "";
+            let h = '<div class="border border-gray-200 rounded-lg p-4 mb-3 bg-gray-50/50">';
+            h += '<h3 class="text-base font-semibold text-gray-800 mb-2">' + escHtml(gp.title || "") + '</h3>';
+            const usage = gp.usage || "";
+            if (usage) {
+                h += '<div class="mb-1"><span class="text-xs text-blue-500 font-medium">用法：</span><span class="text-sm text-gray-700">' + escHtml(usage) + '</span></div>';
+            }
+            const conj = gp.conjugation || (grammarCurrentDay && grammarCurrentDay.conjugation) || "";
+            if (conj) {
+                h += '<div><span class="text-xs text-green-500 font-medium">接续：</span><span class="text-sm text-gray-700">' + escHtml(conj) + '</span></div>';
+            }
+            h += '</div>';
+            return h;
+        }
+
+        function renderQuizStep() {
+            const items = grammarQuizData.quiz_items;
+            if (grammarQuizStep >= items.length) {
+                // All questions done - but this shouldn't happen in normal flow
+                showQuizResults();
+                return;
+            }
+
+            const item = items[grammarQuizStep];
+            const total = items.length;
+
+            // Progress
+            document.getElementById("grammar-q-progress").textContent =
+                "题目 " + (grammarQuizStep + 1) + " / " + total +
+                (item.source === "example" ? " （例句题）" : " （语法题）");
+
+            // Audio
+            grammarQuizCurrentAudio = item.reading || item.original_jp || "";
+
+            // Reset UI
+            document.getElementById("grammar-quiz-feedback").textContent = "";
+            document.getElementById("grammar-quiz-feedback").className = "text-sm mt-4 min-h-[24px] text-center";
+            document.getElementById("grammar-quiz-answer-reveal").classList.add("hidden");
+            document.getElementById("grammar-quiz-cards").dataset.selectedAnswer = "";
+
+            // Actions
+            const actions = document.getElementById("grammar-quiz-actions");
+            actions.classList.remove("hidden");
+            document.getElementById("grammar-quiz-submit-btn").classList.remove("hidden");
+            document.getElementById("grammar-quiz-done-btn").classList.add("hidden");
+            document.getElementById("grammar-quiz-answer-btn").classList.remove("hidden");
+            document.getElementById("grammar-quiz-audio-btn").classList.remove("hidden");
+
+            // Build content: grammar info + question card
+            let html = renderGrammarInfoPanel();
+
+            html += '<div class="border border-gray-200 rounded-lg overflow-hidden">';
+            // Image placeholder
+            html += '<div class="bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center" style="height:140px">';
+            html += '<div class="text-center">';
+            html += '<svg class="w-10 h-10 text-blue-300 mx-auto mb-1" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+            html += '<p class="text-xs text-blue-300">场景图</p>';
+            html += '</div></div>';
+
+            html += '<div class="p-4">';
+            html += '<p class="text-xs text-gray-400 mb-1">' + (item.type === "fill" ? "填空题" : "选择题") + '</p>';
+            html += '<p class="text-base text-gray-800 mb-1 text-center font-[serif]">' + escHtml(item.jp_blanked || "") + '</p>';
+            if (item.reading) {
+                html += '<p class="text-xs text-gray-400 text-center mb-1">' + escHtml(item.reading) + '</p>';
+            }
+            html += '<p class="text-sm text-gray-500 mb-4 text-center">' + escHtml(item.cn_hint || "") + '</p>';
+
+            if (item.type === "fill") {
+                html += '<input id="grammar-fill-input" type="text" placeholder="输入答案..." autocomplete="off" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-base text-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>';
+            } else {
+                html += '<div id="grammar-choice-options" class="space-y-2">';
+                const options = [...(item.options || [])];
+                for (let i = options.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [options[i], options[j]] = [options[j], options[i]];
+                }
+                options.forEach(o => {
+                    html += '<button class="w-full text-left px-4 py-3 border border-gray-200 rounded-lg text-sm hover:bg-blue-50 hover:border-blue-300 transition-colors grammar-choice-opt" data-answer="' + escHtml(o).replace(/"/g, "&quot;") + '">' + escHtml(o) + '</button>';
+                });
+                html += '</div>';
+            }
+
+            html += '</div></div>';
+            document.getElementById("grammar-quiz-cards").innerHTML = html;
+
+            // Bind choices with toggle behavior
+            const choiceBtns = document.querySelectorAll(".grammar-choice-opt");
+            choiceBtns.forEach(btn => {
+                btn.addEventListener("click", function() {
+                    const cards = document.getElementById("grammar-quiz-cards");
+                    const current = cards.dataset.selectedAnswer;
+                    if (current === this.dataset.answer) {
+                        // Deselect this
+                        this.classList.remove("border-2", "border-blue-400", "bg-blue-50");
+                        this.classList.add("border", "border-gray-200");
+                        cards.dataset.selectedAnswer = "";
+                    } else {
+                        // Deselect all
+                        choiceBtns.forEach(b => {
+                            b.classList.remove("border-2", "border-blue-400", "bg-blue-50");
+                            b.classList.add("border", "border-gray-200");
+                        });
+                        // Select this
+                        this.classList.remove("border", "border-gray-200");
+                        this.classList.add("border-2", "border-blue-400", "bg-blue-50");
+                        cards.dataset.selectedAnswer = this.dataset.answer;
+                    }
+                });
+            });
+
+            // Focus
+            setTimeout(() => {
+                const inp = document.getElementById("grammar-fill-input");
+                if (inp) inp.focus();
+            }, 100);
+
+            // Auto-play audio
+            setTimeout(() => grammarQuizPlayAudio(), 300);
+        }
+
+        function grammarQuizPlayAudio() {
+            if (!grammarQuizCurrentAudio) return;
+            audioPlayer.pause(); audioPlayer.currentTime = 0;
+            audioPlayer.src = "/api/tts?text=" + encodeURIComponent(grammarQuizCurrentAudio);
+            audioPlayer.play().catch(function() {});
+        }
+
+        function grammarQuizShowAnswer() {
+            const item = grammarQuizData.quiz_items[grammarQuizStep];
+            document.getElementById("grammar-quiz-answer-text").textContent = item.answer || "";
+            document.getElementById("grammar-quiz-answer-reveal").classList.remove("hidden");
+        }
+
+        function grammarSubmitQuizStep() {
+            const item = grammarQuizData.quiz_items[grammarQuizStep];
+            let userAnswer = "";
+            if (item.type === "fill") {
+                const inp = document.getElementById("grammar-fill-input");
+                if (!inp) return;
+                userAnswer = inp.value.trim();
+            } else {
+                userAnswer = document.getElementById("grammar-quiz-cards").dataset.selectedAnswer || "";
+            }
+            if (!userAnswer) {
+                document.getElementById("grammar-quiz-feedback").textContent = "请输入或选择答案";
+                document.getElementById("grammar-quiz-feedback").className = "text-sm mt-4 text-orange-500 text-center";
+                return;
+            }
+
+            const correct = item.answer || "";
+            const isCorrect = userAnswer === correct;
+            grammarQuizResults.push({ correct: isCorrect, userAnswer: userAnswer, correctAnswer: correct, item: item });
+
+            const fb = document.getElementById("grammar-quiz-feedback");
+            fb.textContent = isCorrect ? "\u2713 正确！" : "\u2717 错误。正确答案：" + correct;
+            fb.className = "text-sm mt-4 " + (isCorrect ? "text-green-600" : "text-red-500") + " font-medium text-center";
+
+            document.getElementById("grammar-quiz-answer-text").textContent = correct;
+            document.getElementById("grammar-quiz-answer-reveal").classList.remove("hidden");
+
+            // Disable input/choices
+            const inp = document.getElementById("grammar-fill-input");
+            if (inp) inp.disabled = true;
+            document.querySelectorAll(".grammar-choice-opt").forEach(b => { b.disabled = true; b.style.pointerEvents = "none"; });
+
+            // Swap buttons
+            document.getElementById("grammar-quiz-submit-btn").classList.add("hidden");
+            document.getElementById("grammar-quiz-answer-btn").classList.add("hidden");
+            document.getElementById("grammar-quiz-done-btn").classList.remove("hidden");
+
+            const isLast = grammarQuizStep + 1 >= grammarQuizData.quiz_items.length;
+            document.getElementById("grammar-quiz-done-btn").textContent = isLast ? "完成 → 下一个语法点" : "下一题";
+            document.getElementById("grammar-quiz-done-btn").onclick = function() {
+                if (isLast) {
+                    grammarSaveAndNext();
+                } else {
+                    grammarQuizStep++;
+                    try { renderQuizStep(); } catch(e) { grammarBackFromQuiz(); }
+                }
+            };
+        }
+
+        function showQuizResults() {
+            // Fallback: shouldn't normally reach here
+            grammarSaveAndNext();
+        }
+
+        async function grammarSaveAndNext() {
+            const total = grammarQuizResults.length;
+            const correct = grammarQuizResults.filter(r => r.correct).length;
+            const status = correct === total ? "mastered" : "unmastered";
+            const errorMsg = correct < total
+                ? grammarQuizResults.filter(r => !r.correct).map(r => r.item.jp_blanked + " -> " + r.correctAnswer).join("; ")
+                : "";
+            try {
+                await fetch("/api/grammar-progress", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: username, grammar_key: getCurrentGrammarKey(), status: status, error_record: errorMsg })
+                });
+                const res = await fetch("/api/grammar-progress?username=" + encodeURIComponent(username));
+                const arr = await res.json();
+                grammarProgress = {};
+                arr.forEach(p => { grammarProgress[p.grammar_key] = p; });
+            } catch(e) {}
+
+            grammarBackFromQuiz();
+            if (grammarCurrentPoints && grammarCurrentIdx < grammarCurrentPoints.length - 1) {
+                setTimeout(() => grammarNextPoint(), 150);
+            }
+        }
+
+        function grammarBackFromQuiz() {
+            document.getElementById("grammar-quiz-view").classList.add("hidden");
+            document.getElementById("grammar-point-view").classList.remove("hidden");
+            document.getElementById("grammar-start-quiz").classList.remove("hidden");
+            document.getElementById("grammar-expand-btn").classList.remove("hidden");
+            document.getElementById("grammar-expand-list").classList.add("hidden");
+            grammarExpanded = false;
+            const eb = document.getElementById("grammar-expand-btn");
+            if (eb) eb.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg> 展开';
+            grammarQuizData = null;
+            grammarQuizStep = 0;
+            grammarQuizResults = [];
+            if (grammarCurrentPoints && grammarCurrentPoints.length > 0) {
+                if (grammarCurrentIdx >= grammarCurrentPoints.length) grammarCurrentIdx = 0;
+                renderGrammarPoint();
+            }
+        }
+// Browse / Records toggle
+        function grammarShowBrowse() {
+            grammarView = "browse";
+            document.getElementById("grammar-sub-browse").className = "tab-active pb-2 text-sm font-medium transition-colors";
+            document.getElementById("grammar-sub-records").className = "tab-inactive pb-2 text-sm font-medium transition-colors";
+            document.getElementById("grammar-browse-view").classList.remove("hidden");
+            document.getElementById("grammar-quiz-view").classList.add("hidden");
+            document.getElementById("grammar-records-view").classList.add("hidden");
+            document.getElementById("grammar-expand-btn").classList.remove("hidden");
+            document.getElementById("grammar-expand-list").classList.add("hidden");
+            grammarExpanded = false;
+            document.getElementById("grammar-expand-btn").innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg> 展开';
+            renderGrammarPoint();
+        }
+
+        async function grammarShowRecords() {
+            grammarView = "records";
+            document.getElementById("grammar-sub-browse").className = "tab-inactive pb-2 text-sm font-medium transition-colors";
+            document.getElementById("grammar-sub-records").className = "tab-active pb-2 text-sm font-medium transition-colors";
+            document.getElementById("grammar-browse-view").classList.add("hidden");
+            document.getElementById("grammar-quiz-view").classList.add("hidden");
+            document.getElementById("grammar-records-view").classList.remove("hidden");
+            document.getElementById("grammar-records-container").innerHTML = '<div class="shimmer rounded-lg" style="height:100px"></div>';
+            // Always re-fetch progress
+            try {
+                const progRes = await fetch("/api/grammar-progress?username=" + encodeURIComponent(username));
+                const progArr = await progRes.json();
+                grammarProgress = {};
+                progArr.forEach(p => { grammarProgress[p.grammar_key] = p; });
+                // Load grammar list if not already
+                if (grammarDayList.length === 0) {
+                    const listRes = await fetch("/api/grammar-list");
+                    grammarDayList = await listRes.json();
+                }
+            } catch(e) {
+                document.getElementById("grammar-records-container").innerHTML = '<p class="text-sm text-gray-400 text-center py-8">加载失败</p>';
+                return;
+            }
+            grammarFilterRecords("mastered");
+        }
+
+        function grammarFilterRecords(filter) {
+            grammarRecordFilter = filter;
+            document.getElementById("records-mastered-btn").className = filter === "mastered"
+                ? "flex-1 py-2 text-sm font-medium rounded-lg bg-green-50 text-green-700 border border-green-200"
+                : "flex-1 py-2 text-sm font-medium rounded-lg bg-white text-gray-500 border border-gray-200";
+            document.getElementById("records-unmastered-btn").className = filter === "unmastered"
+                ? "flex-1 py-2 text-sm font-medium rounded-lg bg-orange-50 text-orange-700 border border-orange-200"
+                : "flex-1 py-2 text-sm font-medium rounded-lg bg-white text-gray-500 border border-gray-200";
+            renderGrammarRecords();
+        }
+
+        
+        function renderGrammarRecords() {
+            const container = document.getElementById("grammar-records-container");
+            const filtered = Object.entries(grammarProgress).filter(([k, v]) => v.status === grammarRecordFilter);
+
+            // Build map: grammarKey -> full info
+            const gpMap = {};
+            grammarDayList.forEach(d => {
+                (d.grammar_points || []).forEach((gp, gi) => {
+                    gpMap[gp.key] = {
+                        title: gp.title || "",
+                        conjugation: gp.conjugation || "",
+                        explanation: gp.usage_preview || "",
+                        week: d.week || "",
+                        day: d.day || "",
+                        day_title: d.day_title || ""
+                    };
+                });
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="text-center py-10">'
+                    + '<svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>'
+                    + '<p class="text-sm text-gray-400 mb-1">' + (grammarRecordFilter === "mastered" ? "暂无已掌握语法" : "暂无未掌握语法") + '</p>'
+                    + '<p class="text-xs text-gray-300">完成测验后自动出现</p>'
+                    + '</div>';
+                return;
+            }
+
+            // Group by week -> day
+            const grouped = {};
+            filtered.forEach(([key, prog]) => {
+                const gp = gpMap[key] || {};
+                const wk = gp.week || "0";
+                const dy = gp.day || "0";
+                if (!grouped[wk]) grouped[wk] = {};
+                if (!grouped[wk][dy]) grouped[wk][dy] = [];
+                grouped[wk][dy].push({ key, prog, gp });
+            });
+
+            let html = "";
+            Object.keys(grouped).sort((a,b) => a-b).forEach(wk => {
+                html += '<div class="mb-4"><p class="text-sm font-semibold text-gray-600 mb-2">第' + wk + '週</p>';
+                Object.keys(grouped[wk]).sort((a,b) => a-b).forEach(dy => {
+                    const items = grouped[wk][dy];
+                    const dayTitle = items[0].gp.day_title || "";
+                    html += '<p class="text-xs text-gray-400 mb-2 ml-1">第' + dy + '日目 ' + escHtml(dayTitle) + '</p>';
+                    items.forEach(({key, prog, gp}) => {
+                        const borderColor = grammarRecordFilter === "mastered" ? "border-l-green-400" : "border-l-orange-400";
+                        const bgColor = grammarRecordFilter === "mastered" ? "bg-green-50/30" : "bg-orange-50/30";
+                        html += '<div class="rounded-lg border border-gray-200 ' + bgColor + ' border-l-4 ' + borderColor + ' overflow-hidden mb-2">';
+                        // Header
+                        html += '<div class="px-3 py-2 bg-white/50 flex items-center justify-between border-b border-gray-100">';
+                        html += '<span class="text-sm font-medium text-gray-700">' + escHtml(gp.title || key) + '</span>';
+                        html += '<span class="text-xs ' + (grammarRecordFilter === "mastered" ? "text-green-500" : "text-orange-500") + '">' + (grammarRecordFilter === "mastered" ? "已掌握" : "未掌握") + '</span>';
+                        html += '</div>';
+                        // Body: 2 columns
+                        html += '<div class="flex gap-3 p-3">';
+                        // Left
+                        html += '<div class="flex-1 min-w-0 space-y-1.5">';
+                        html += '<div><span class="text-xs text-gray-400">语法条目</span><p class="text-xs text-gray-700">' + escHtml(gp.title || "") + '</p></div>';
+                        html += '<div><span class="text-xs text-gray-400">接续</span><p class="text-xs text-gray-700">' + escHtml(gp.conjugation || "暂无") + '</p></div>';
+                        html += '<div><span class="text-xs text-gray-400">含义</span><p class="text-xs text-gray-700">' + escHtml(gp.explanation || "暂无") + '</p></div>';
+                        html += '</div>';
+                        // Right
+                        html += '<div class="flex-1 min-w-0 space-y-1.5">';
+                        html += '<div><span class="text-xs text-gray-400">触发条件</span>';
+                        html += '<textarea class="w-full border border-gray-200 rounded p-1 text-xs mt-0.5 resize-none bg-white" rows="2" data-gk="' + key + '" data-gf="trigger_condition" onchange="grammarUpdateField(this.dataset.gk,this.dataset.gf,this.value)" placeholder="添加...">' + escHtml(prog.trigger_condition || "") + '</textarea></div>';
+                        html += '<div><span class="text-xs text-gray-400">个人例句</span>';
+                        html += '<textarea class="w-full border border-gray-200 rounded p-1 text-xs mt-0.5 resize-none bg-white" rows="2" data-gk="' + key + '" data-gf="personal_example" onchange="grammarUpdateField(this.dataset.gk,this.dataset.gf,this.value)" placeholder="添加...">' + escHtml(prog.personal_example || "") + '</textarea></div>';
+                        if (grammarRecordFilter === "unmastered") {
+                            html += '<div><span class="text-xs text-red-400">错误记录</span>';
+                            html += '<p class="text-xs text-red-500 mt-0.5 bg-red-50 p-1 rounded">' + escHtml(prog.error_record || "暂无") + '</p></div>';
+                            html += '<button class="mt-1 w-full bg-green-500 hover:bg-green-600 text-white text-xs font-medium py-1.5 rounded transition-colors" onclick="grammarMarkMastered(\'' + key + '\')">标记为已掌握</button>';
+                        }
+                        html += '</div>';
+                        html += '</div></div>';
+                    });
+                });
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        async function grammarMarkMastered(key) {
+            try {
+                await fetch("/api/grammar-progress", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: username, grammar_key: key, status: "mastered" })
+                });
+                const res = await fetch("/api/grammar-progress?username=" + encodeURIComponent(username));
+                const arr = await res.json();
+                grammarProgress = {};
+                arr.forEach(p => { grammarProgress[p.grammar_key] = p; });
+                renderGrammarRecords();
+            } catch(e) {}
+        }
+
+        async function grammarUpdateField(key, field, value) {
+            try {
+                const body = { username: username, grammar_key: key };
+                body[field] = value;
+                await fetch("/api/grammar-progress", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                });
+                if (grammarProgress[key]) grammarProgress[key][field] = value;
+            } catch (e) {}
+        }
+        // ============ LISTENING TAB ============
+
+        async function loadListeningList() {
+            try {
+                const res = await fetch("/api/listening");
+                listeningMaterials = await res.json();
+                renderListeningList();
+            } catch (e) {
+                document.getElementById("listening-list").innerHTML = "";
+                document.getElementById("listening-empty").classList.remove("hidden");
+            }
+        }
+
+        function renderListeningList() {
+            const list = document.getElementById("listening-list");
+            const empty = document.getElementById("listening-empty");
+            if (listeningMaterials.length === 0) {
+                list.innerHTML = "";
+                empty.classList.remove("hidden");
+                return;
+            }
+            empty.classList.add("hidden");
+            list.innerHTML = listeningMaterials.map(m =>
+                '<div class="p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors border border-gray-100" onclick="listeningSelect(' + m.id + ')">'
+                + '<p class="text-sm font-medium text-gray-800">' + escHtml(m.title) + '</p>'
+                + '<p class="text-xs text-gray-400 mt-1">' + escHtml(m.translation) + '</p></div>'
+            ).join("");
+        }
+
+        async function listeningSelect(id) {
+            try {
+                const res = await fetch("/api/listening/" + id);
+                if (!res.ok) { showToast("加载失败", "error"); return; }
+                listeningCurrent = await res.json();
+                listeningPass = 1;
+                listeningAnswers = null;
+
+                document.getElementById("listening-list-view").classList.add("hidden");
+                document.getElementById("listening-practice-view").classList.remove("hidden");
+                document.getElementById("listening-title").textContent = listeningCurrent.title;
+                document.getElementById("listening-translation-preview").textContent = listeningCurrent.translation;
+
+                document.getElementById("listening-pass1").classList.remove("hidden");
+                document.getElementById("listening-pass2").classList.add("hidden");
+                document.getElementById("listening-pass1-inputs").classList.add("hidden");
+                document.getElementById("listening-pass1-results").classList.add("hidden");
+                document.getElementById("listening-pass1-submit").classList.add("hidden");
+                document.getElementById("listening-pass2-reveal").classList.add("hidden");
+                document.getElementById("listening-play2-btn").classList.remove("hidden");
+            } catch (e) {
+                showToast("加载失败", "error");
+            }
+        }
+
+        function listeningBackToList() {
+            document.getElementById("listening-list-view").classList.remove("hidden");
+            document.getElementById("listening-practice-view").classList.add("hidden");
+            listeningCurrent = null;
+            listeningAnswers = null;
+        }
+
+        document.getElementById("listening-play1-btn").addEventListener("click", function() {
+            if (!listeningCurrent) return;
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            audioPlayer.src = "/api/listening/" + listeningCurrent.id + "/audio";
+            audioPlayer.play().catch(() => showToast("音频播放失败", "error"));
+            audioPlayer.onended = function() { showPass1Inputs(); };
+        });
+
+        function showPass1Inputs() {
+            const m = listeningCurrent;
+            document.getElementById("listening-pass1-inputs").classList.remove("hidden");
+            document.getElementById("listening-pass1-submit").classList.remove("hidden");
+
+            let phtml = "";
+            for (let i = 0; i < m.particles_count; i++) {
+                phtml += '<input type="text" class="listening-particle w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="助词 ' + (i + 1) + '" autocomplete="off">';
+            }
+            document.getElementById("listening-particles-inputs").innerHTML = phtml || '<p class="text-xs text-gray-400">无</p>';
+
+            let ghtml = "";
+            for (let i = 0; i < m.grammar_links_count; i++) {
+                ghtml += '<input type="text" class="listening-grammar w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="语法链接 ' + (i + 1) + '" autocomplete="off">';
+            }
+            document.getElementById("listening-grammar-inputs").innerHTML = ghtml || '<p class="text-xs text-gray-400">无</p>';
+
+            let nhtml = "";
+            for (let i = 0; i < m.core_nouns_count; i++) {
+                nhtml += '<input type="text" class="listening-noun w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="核心名词 ' + (i + 1) + '" autocomplete="off">';
+            }
+            document.getElementById("listening-nouns-inputs").innerHTML = nhtml || '<p class="text-xs text-gray-400">无</p>';
+        }
+
+        document.getElementById("listening-pass1-submit").addEventListener("click", async function() {
+            try {
+                const res = await fetch("/api/listening/" + listeningCurrent.id + "/answers");
+                listeningAnswers = await res.json();
+            } catch (e) { return; }
+
+            const userParticles = Array.from(document.querySelectorAll(".listening-particle")).map(i => i.value.trim());
+            const userGrammar = Array.from(document.querySelectorAll(".listening-grammar")).map(i => i.value.trim());
+            const userNouns = Array.from(document.querySelectorAll(".listening-noun")).map(i => i.value.trim());
+
+            let pCorrect = 0, gCorrect = 0, nCorrect = 0;
+            const resultsDiv = document.getElementById("listening-pass1-results");
+            let rhtml = "";
+
+            rhtml += '<div><span class="font-medium text-gray-700">助词：</span>';
+            listeningAnswers.particles.forEach((ans, i) => {
+                const user = userParticles[i] || "";
+                const ok = user === ans;
+                if (ok) pCorrect++;
+                rhtml += '<span class="' + (ok ? "text-green-600" : "text-red-500") + '">' + escHtml(user || "（空）") + '</span>';
+                if (!ok) rhtml += '<span class="text-gray-400 ml-1">→' + escHtml(ans) + '</span>';
+                if (i < listeningAnswers.particles.length - 1) rhtml += "、";
+            });
+            rhtml += "</div>";
+
+            rhtml += '<div class="mt-1"><span class="font-medium text-gray-700">语法：</span>';
+            listeningAnswers.grammar_links.forEach((ans, i) => {
+                const user = userGrammar[i] || "";
+                const ok = user === ans;
+                if (ok) gCorrect++;
+                rhtml += '<span class="' + (ok ? "text-green-600" : "text-red-500") + '">' + escHtml(user || "（空）") + '</span>';
+                if (!ok) rhtml += '<span class="text-gray-400 ml-1">→' + escHtml(ans) + '</span>';
+                if (i < listeningAnswers.grammar_links.length - 1) rhtml += "、";
+            });
+            rhtml += "</div>";
+
+            rhtml += '<div class="mt-1"><span class="font-medium text-gray-700">名词：</span>';
+            listeningAnswers.core_nouns.forEach((ans, i) => {
+                const user = userNouns[i] || "";
+                const ok = user === ans;
+                if (ok) nCorrect++;
+                rhtml += '<span class="' + (ok ? "text-green-600" : "text-red-500") + '">' + escHtml(user || "（空）") + '</span>';
+                if (!ok) rhtml += '<span class="text-gray-400 ml-1">→' + escHtml(ans) + '</span>';
+                if (i < listeningAnswers.core_nouns.length - 1) rhtml += "、";
+            });
+            rhtml += "</div>";
+
+            resultsDiv.innerHTML = rhtml;
+            resultsDiv.classList.remove("hidden");
+            document.getElementById("listening-pass1-inputs").classList.add("hidden");
+            document.getElementById("listening-pass1-submit").classList.add("hidden");
+
+            const total = listeningAnswers.particles.length + listeningAnswers.grammar_links.length + listeningAnswers.core_nouns.length;
+            const score = total > 0 ? Math.round((pCorrect + gCorrect + nCorrect) / total * 100) : 0;
+            try {
+                await fetch("/api/listening-progress", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: username, listening_id: listeningCurrent.id, score: score,
+                        particles_correct: pCorrect, particles_total: listeningAnswers.particles.length,
+                        grammar_correct: gCorrect, grammar_total: listeningAnswers.grammar_links.length,
+                        nouns_correct: nCorrect, nouns_total: listeningAnswers.core_nouns.length
+                    }),
+                });
+            } catch (e) {}
+
+            document.getElementById("listening-pass2").classList.remove("hidden");
+            showToast("得分：" + score + "%", score >= 60 ? "success" : "error");
+        });
+
+        document.getElementById("listening-play2-btn").addEventListener("click", function() {
+            if (!listeningCurrent) return;
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            audioPlayer.src = "/api/listening/" + listeningCurrent.id + "/audio";
+            audioPlayer.play().catch(() => showToast("音频播放失败", "error"));
+            audioPlayer.onended = function() {
+                document.getElementById("listening-play2-btn").classList.add("hidden");
+                document.getElementById("listening-pass2-reveal").classList.remove("hidden");
+                document.getElementById("listening-full-text").textContent = listeningAnswers.text;
+                document.getElementById("listening-full-translation").textContent = listeningAnswers.translation;
+                const comp = document.getElementById("listening-answer-comparison");
+                let compHtml = '<div class="text-xs text-gray-400 mb-1">正确答案对照</div>';
+                compHtml += '<div class="text-xs"><span class="text-gray-500">助词：</span><span class="text-green-600">' + escHtml(listeningAnswers.particles.join("、")) + '</span></div>';
+                compHtml += '<div class="text-xs mt-0.5"><span class="text-gray-500">语法：</span><span class="text-green-600">' + escHtml(listeningAnswers.grammar_links.join("、")) + '</span></div>';
+                compHtml += '<div class="text-xs mt-0.5"><span class="text-gray-500">名词：</span><span class="text-green-600">' + escHtml(listeningAnswers.core_nouns.join("、")) + '</span></div>';
+                comp.innerHTML = compHtml;
+            };
+        });
+
+        // ============ UTILS ============
+
         function showToast(msg, type) {
             toast.textContent = msg;
-            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg text-sm font-medium shadow-lg z-50 transition-all duration-300 ' + (type === 'success' ? 'bg-green-600 text-white' : 'bg-red-500 text-white');
-            toast.classList.remove('hidden');
-            setTimeout(() => { toast.classList.add('hidden'); }, 2000);
+            toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg text-sm font-medium shadow-lg z-50 transition-all duration-300 "
+                + (type === "success" ? "bg-green-600 text-white" : "bg-red-500 text-white");
+            toast.classList.remove("hidden");
+            setTimeout(() => { toast.classList.add("hidden"); }, 2000);
         }
 
         function escHtml(text) {
-            const div = document.createElement('div');
+            const div = document.createElement("div");
             div.textContent = text;
             return div.innerHTML;
         }

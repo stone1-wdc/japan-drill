@@ -1,4 +1,9 @@
-﻿__pycache__/
+__pycache__/
 *.db
 .env
 python
+_fix_*.py
+_test_*.js
+_check_*.py
+_*.py
+yufa/
