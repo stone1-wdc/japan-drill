@@ -635,32 +635,88 @@ def generate_grammar_quiz():
             })
 
     # --- Question 2: generated from grammar rules ---
-    # Build a template sentence using the grammar pattern
-    q2_type = "choice"
-
-    # Extract the core grammar pattern from title
+    # Priority: 1) generate a new sentence, 2) use a different example, 3) generic
+    import random as _random2
     core_pattern = title.split("(")[0].strip().replace(" ", "") if title else ""
-    # Try to construct a fill-in based on conjugation pattern
     conj_parts = conjugation.replace(" ", "").split("/")[0].strip() if conjugation else ""
 
-    # Build audio text
-    audio_jp = ""
-    if examples:
-        audio_jp = examples[0].get("jp", "")
-    if not audio_jp and core_pattern:
-        audio_jp = "「" + core_pattern + "」の使い方です。"""
-
+    # Try generating a brand new sentence
+    q2_jp = ""
+    q2_reading = ""
+    q2_cn = ""
     if core_pattern and conj_parts:
-        # Choice question: which conjugation/usage is correct
+        q2_jp = _build_grammar_sentence(core_pattern, conj_parts)
+        q2_reading = q2_jp  # edge-tts handles kanji reading natively
+
+    # Fall back to a different example from Q1
+    if not q2_jp:
+        q1_jp = quiz_items[0].get("original_jp", "") if quiz_items else ""
+        remaining = [e for e in examples if e.get("jp", "") != q1_jp]
+        if remaining:
+            ex = _random2.choice(remaining)
+        elif examples:
+            ex = examples[-1]
+        else:
+            ex = None
+        if ex:
+            q2_jp = ex.get("jp", "")
+            q2_reading = ex.get("reading", q2_jp)
+            q2_cn = ex.get("cn", "")
+
+    q2_type = "fill" if _random2.random() < 0.5 else "choice"
+
+    if q2_jp and core_pattern:
+        # Blank the grammar pattern from the generated/picked sentence
+        display_pat = core_pattern.replace(" ", "").replace("(", "（").replace(")", "）")
+        clean_pat = display_pat.lstrip("~").lstrip("〜")
+        if clean_pat in q2_jp:
+            blanked = q2_jp.replace(clean_pat, "___", 1)
+            answer = clean_pat
+        elif display_pat in q2_jp:
+            blanked = q2_jp.replace(display_pat, "___", 1)
+            answer = display_pat
+        else:
+            # Blank longest word
+            words = q2_jp.replace("「", "").replace("」", "").replace("（", " ").replace("）", " ").replace("、", " ").replace("。", "").split()
+            candidates = [w for w in words if len(w) >= 2]
+            answer = _random2.choice(candidates) if candidates else (words[-1] if words else core_pattern)
+            blanked = q2_jp.replace(answer, "___", 1) if answer else q2_jp
+
+        hint = (q2_cn + "\n") if q2_cn else ""
+        hint += "语法：「" + title + "」"
+
+        if q2_type == "fill":
+            quiz_items.append({
+                "type": "fill",
+                "jp_blanked": blanked,
+                "cn_hint": hint,
+                "answer": answer,
+                "source": "grammar",
+                "original_jp": q2_jp,
+                "reading": q2_reading
+            })
+        else:
+            opts = _generate_sentence_distractors(answer, q2_jp, examples)
+            quiz_items.append({
+                "type": "choice",
+                "jp_blanked": blanked,
+                "cn_hint": hint,
+                "answer": answer,
+                "options": opts,
+                "source": "grammar",
+                "original_jp": q2_jp,
+                "reading": q2_reading
+            })
+    elif core_pattern and conj_parts:
         quiz_items.append({
             "type": "choice",
             "jp_blanked": "次の文の___に入るものを選びなさい。",
-            "cn_hint": "语法：「" + title + "」— " + (usage[:80] if usage else "") + "",
+            "cn_hint": "语法：「" + title + "」— " + (usage[:80] if usage else ""),
             "answer": core_pattern,
             "options": _generate_distractors_for_pattern(core_pattern, examples),
             "source": "grammar",
-            "original_jp": audio_jp,
-            "reading": audio_jp
+            "original_jp": "次の文の空欄に入るものを選びなさい。",
+            "reading": "次の文の空欄に入るものを選びなさい。"
         })
     elif core_pattern:
         quiz_items.append({
@@ -670,8 +726,8 @@ def generate_grammar_quiz():
             "answer": usage[:60] if usage else core_pattern,
             "options": [usage[:60] if usage else core_pattern, "原因・理由を表す", "命令・禁止を表す", "推量・推定を表す"],
             "source": "grammar",
-            "original_jp": audio_jp,
-            "reading": audio_jp
+            "original_jp": "「" + core_pattern + "」の使い方として正しいものは？",
+            "reading": "「" + core_pattern + "」の使い方として正しいものは？"
         })
     else:
         quiz_items.append({
@@ -681,8 +737,8 @@ def generate_grammar_quiz():
             "answer": usage[:60] if usage else title,
             "options": [usage[:60] if usage else title, "逆接を表す", "理由を表す", "仮定を表す"],
             "source": "grammar",
-            "original_jp": audio_jp,
-            "reading": audio_jp
+            "original_jp": "「" + title + "」の意味として最も適切なものは？",
+            "reading": "「" + title + "」の意味として最も適切なものは？"
         })
 
     return jsonify({"quiz_items": quiz_items})
@@ -706,6 +762,80 @@ def _generate_distractors_for_pattern(correct_pattern, examples):
     candidates = [p for p in common_patterns if p != clean_correct and p not in correct_pattern]
     _random.shuffle(candidates)
     return [correct_pattern] + candidates[:3]
+
+
+def _generate_sentence_distractors(correct_word, sentence, examples):
+    """Generate distractors for a word blanked from a sentence."""
+    import random as _random
+    # Collect candidate words from all examples
+    all_words = set()
+    for e in examples:
+        ejp = e.get("jp", "")
+        for w in ejp.replace("「", "").replace("」", "").replace("（", " ").replace("）", " ").replace("、", " ").replace("。", "").split():
+            if len(w) >= 1 and w != correct_word:
+                all_words.add(w)
+    # Also add words from the sentence itself
+    for w in sentence.replace("「", "").replace("」", "").replace("（", " ").replace("）", " ").replace("、", " ").replace("。", "").split():
+        if len(w) >= 1 and w != correct_word:
+            all_words.add(w)
+    all_words.discard(correct_word)
+    dist = _random.sample(list(all_words), min(3, len(all_words)))
+    while len(dist) < 3:
+        dist.append("＿" + str(len(dist) + 1))
+    return [correct_word] + dist
+
+
+def _build_grammar_sentence(pattern, conj):
+    """Generate a new Japanese sentence demonstrating the grammar pattern."""
+    import random as _random
+    # Strip decorative prefix for natural insertion
+    clean_pat = pattern.lstrip("~").lstrip("〜")
+
+    # Word pools for slot filling
+    nouns = ["私", "彼", "彼女", "学生", "先生", "日本人", "外国人", "子供", "大人", "友達", "家族", "会社", "学校", "日本", "東京", "料理", "宿題", "仕事", "天気", "時間", "お金", "健康", "旅行", "映画", "音楽", "日本語", "英語", "言葉", "約束", "生活"]
+    verbs_dict = ["食べる", "飲む", "行く", "来る", "見る", "聞く", "読む", "書く", "話す", "作る", "使う", "買う", "売る", "歩く", "走る", "勉強する", "練習する", "運動する", "掃除する", "料理する", "旅行する", "考える", "思う", "言う", "教える", "習う", "待つ", "座る", "立つ"]
+    adj_i = ["高い", "安い", "大きい", "小さい", "美味しい", "楽しい", "忙しい", "優しい", "厳しい", "嬉しい", "悲しい", "正しい", "新しい", "古い", "良い", "悪い", "面白い", "難しい", "易しい", "若い"]
+    adj_na = ["静か", "賑やか", "綺麗", "有名", "便利", "元気", "親切", "簡単", "複雑", "重要", "必要", "安全", "危険", "失礼", "丁寧", "真面目", "自由", "豊か"]
+
+    # Conjugation type detection and sentence generation
+    if "名词" in conj or "名詞" in conj:
+        n = _random.choice(nouns)
+        # Pattern like: N + にとって → Nにとって
+        tmpls = [
+            n + clean_pat + "、これはとても大事なことです。",
+            n + clean_pat + "、毎日が勉強になります。",
+            n + clean_pat + "、この問題は難しいです。",
+            n + clean_pat + "、何が一番必要ですか。",
+        ]
+        return _random.choice(tmpls)
+
+    if "动词" in conj or "動詞" in conj:
+        v = _random.choice(verbs_dict)
+        tmpls = [
+            "毎日" + v + clean_pat + "、上手になりました。",
+            "ちゃんと" + v + clean_pat + "、後で確認します。",
+        ]
+        return _random.choice(tmpls)
+
+    if "形容词" in conj or "形容詞" in conj:
+        a = _random.choice(adj_i)
+        tmpls = [
+            "この店は" + a + clean_pat + "、よく来ます。",
+            "あの人は" + a + clean_pat + "、いつも頑張っています。",
+        ]
+        return _random.choice(tmpls)
+
+    if "形容动词" in conj or "形容動詞" in conj:
+        a = _random.choice(adj_na)
+        tmpls = [
+            "この街は" + a + clean_pat + "、住みやすいです。",
+            "彼は" + a + clean_pat + "、みんなに好かれています。",
+        ]
+        return _random.choice(tmpls)
+
+    # Generic: construct from pattern itself
+    n = _random.choice(nouns)
+    return n + clean_pat + "、毎日の生活に欠かせません。"
 
 
 # Listening routes (NEW)
