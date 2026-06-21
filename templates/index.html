@@ -1119,16 +1119,26 @@
             html += '</div></div>';
 
             html += '<div class="p-4">';
-            html += '<p class="text-xs text-gray-400 mb-1">' + (item.type === "fill" ? "填空题" : "选择题") + '</p>';
-            html += '<p class="text-base text-gray-800 mb-1 text-center font-[serif]">' + escHtml(item.jp_blanked || "") + '</p>';
-            if (item.reading) {
-                html += '<p class="text-xs text-gray-400 text-center mb-1">' + escHtml(item.reading) + '</p>';
-            }
-            html += '<p class="text-sm text-gray-500 mb-4 text-center">' + escHtml(item.cn_hint || "") + '</p>';
-
-            if (item.type === "fill") {
+            if (item.type === 'translate') {
+                html += '<p class="text-xs text-gray-400 mb-1">翻译题</p>';
+                html += '<p class="text-lg text-gray-800 mb-1 text-center font-[serif]">' + escHtml(item.cn_text || "") + '</p>';
+                html += '<p class="text-xs text-gray-400 mb-3 text-center">' + escHtml(item.cn_hint || "") + '</p>';
+                html += '<input id="grammar-fill-input" type="text" placeholder="输入日语翻译..." autocomplete="off" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-base text-center focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"/>';
+            } else if (item.type === 'fill') {
+                html += '<p class="text-xs text-gray-400 mb-1">填空题</p>';
+                html += '<p class="text-base text-gray-800 mb-1 text-center font-[serif]">' + escHtml(item.jp_blanked || "") + '</p>';
+                if (item.reading) {
+                    html += '<p class="text-xs text-gray-400 text-center mb-1">' + escHtml(item.reading) + '</p>';
+                }
+                html += '<p class="text-sm text-gray-500 mb-4 text-center">' + escHtml(item.cn_hint || "") + '</p>';
                 html += '<input id="grammar-fill-input" type="text" placeholder="输入答案..." autocomplete="off" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-base text-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>';
             } else {
+                html += '<p class="text-xs text-gray-400 mb-1">选择题</p>';
+                html += '<p class="text-base text-gray-800 mb-1 text-center font-[serif]">' + escHtml(item.jp_blanked || "") + '</p>';
+                if (item.reading) {
+                    html += '<p class="text-xs text-gray-400 text-center mb-1">' + escHtml(item.reading) + '</p>';
+                }
+                html += '<p class="text-sm text-gray-500 mb-4 text-center">' + escHtml(item.cn_hint || "") + '</p>';
                 html += '<div id="grammar-choice-options" class="space-y-2">';
                 const options = [...(item.options || [])];
                 for (let i = options.length - 1; i > 0; i--) {
@@ -1195,7 +1205,7 @@
         function grammarSubmitQuizStep() {
             const item = grammarQuizData.quiz_items[grammarQuizStep];
             let userAnswer = "";
-            if (item.type === "fill") {
+            if (item.type === "fill" || item.type === "translate") {
                 const inp = document.getElementById("grammar-fill-input");
                 if (!inp) return;
                 userAnswer = inp.value.trim();
@@ -1251,7 +1261,7 @@
             const correct = grammarQuizResults.filter(r => r.correct).length;
             const status = correct === total ? "mastered" : "unmastered";
             const errorMsg = correct < total
-                ? grammarQuizResults.filter(r => !r.correct).map(r => r.item.jp_blanked + " -> " + r.correctAnswer).join("; ")
+                ? grammarQuizResults.filter(r => !r.correct).map(r => (r.item.cn_text || r.item.jp_blanked || "") + " -> " + r.correctAnswer).join("; ")
                 : "";
             try {
                 await fetch("/api/grammar-progress", {

@@ -634,114 +634,25 @@ def generate_grammar_quiz():
                 "reading": reading
             })
 
-    # --- Question 2: generated from grammar rules ---
-    # Priority: 1) generate a new sentence, 2) use a different example, 3) generic
+    # --- Question 2: 翻译题（中文→日语） ---
+    # 根据语法知识点生成中文语句，让用户翻译成日语，让用户翻译成日语
     import random as _random2
-    core_pattern = title.split("(")[0].strip().replace(" ", "") if title else ""
-    conj_parts = conjugation.replace(" ", "").split("/")[0].strip() if conjugation else ""
 
-    # Try generating a brand new sentence
-    q2_jp = ""
-    q2_reading = ""
-    q2_cn = ""
-    if core_pattern and conj_parts:
-        q2_jp = _build_grammar_sentence(core_pattern, conj_parts)
-        q2_reading = q2_jp  # edge-tts handles kanji reading natively
+    cn_text, jp_answer = _generate_translation_pair(title, usage, conjugation)
+    q2_reading = jp_answer
 
-    # Fall back to a different example from Q1
-    if not q2_jp:
-        q1_jp = quiz_items[0].get("original_jp", "") if quiz_items else ""
-        remaining = [e for e in examples if e.get("jp", "") != q1_jp]
-        if remaining:
-            ex = _random2.choice(remaining)
-        elif examples:
-            ex = examples[-1]
-        else:
-            ex = None
-        if ex:
-            q2_jp = ex.get("jp", "")
-            q2_reading = ex.get("reading", q2_jp)
-            q2_cn = ex.get("cn", "")
-
-    q2_type = "fill" if _random2.random() < 0.5 else "choice"
-
-    if q2_jp and core_pattern:
-        # Blank the grammar pattern from the generated/picked sentence
-        display_pat = core_pattern.replace(" ", "").replace("(", "（").replace(")", "）")
-        clean_pat = display_pat.lstrip("~").lstrip("〜")
-        if clean_pat in q2_jp:
-            blanked = q2_jp.replace(clean_pat, "___", 1)
-            answer = clean_pat
-        elif display_pat in q2_jp:
-            blanked = q2_jp.replace(display_pat, "___", 1)
-            answer = display_pat
-        else:
-            # Blank longest word
-            words = q2_jp.replace("「", "").replace("」", "").replace("（", " ").replace("）", " ").replace("、", " ").replace("。", "").split()
-            candidates = [w for w in words if len(w) >= 2]
-            answer = _random2.choice(candidates) if candidates else (words[-1] if words else core_pattern)
-            blanked = q2_jp.replace(answer, "___", 1) if answer else q2_jp
-
-        hint = (q2_cn + "\n") if q2_cn else ""
-        hint += "语法：「" + title + "」"
-
-        if q2_type == "fill":
-            quiz_items.append({
-                "type": "fill",
-                "jp_blanked": blanked,
-                "cn_hint": hint,
-                "answer": answer,
-                "source": "grammar",
-                "original_jp": q2_jp,
-                "reading": q2_reading
-            })
-        else:
-            opts = _generate_sentence_distractors(answer, q2_jp, examples)
-            quiz_items.append({
-                "type": "choice",
-                "jp_blanked": blanked,
-                "cn_hint": hint,
-                "answer": answer,
-                "options": opts,
-                "source": "grammar",
-                "original_jp": q2_jp,
-                "reading": q2_reading
-            })
-    elif core_pattern and conj_parts:
-        quiz_items.append({
-            "type": "choice",
-            "jp_blanked": "次の文の___に入るものを選びなさい。",
-            "cn_hint": "语法：「" + title + "」— " + (usage[:80] if usage else ""),
-            "answer": core_pattern,
-            "options": _generate_distractors_for_pattern(core_pattern, examples),
-            "source": "grammar",
-            "original_jp": "次の文の空欄に入るものを選びなさい。",
-            "reading": "次の文の空欄に入るものを選びなさい。"
-        })
-    elif core_pattern:
-        quiz_items.append({
-            "type": "choice",
-            "jp_blanked": "「" + core_pattern + "」の使い方として正しいものは？",
-            "cn_hint": "语法：「" + title + "」",
-            "answer": usage[:60] if usage else core_pattern,
-            "options": [usage[:60] if usage else core_pattern, "原因・理由を表す", "命令・禁止を表す", "推量・推定を表す"],
-            "source": "grammar",
-            "original_jp": "「" + core_pattern + "」の使い方として正しいものは？",
-            "reading": "「" + core_pattern + "」の使い方として正しいものは？"
-        })
-    else:
-        quiz_items.append({
-            "type": "choice",
-            "jp_blanked": "「" + title + "」の意味として最も適切なものは？",
-            "cn_hint": "",
-            "answer": usage[:60] if usage else title,
-            "options": [usage[:60] if usage else title, "逆接を表す", "理由を表す", "仮定を表す"],
-            "source": "grammar",
-            "original_jp": "「" + title + "」の意味として最も適切なものは？",
-            "reading": "「" + title + "」の意味として最も適切なものは？"
-        })
+    quiz_items.append({
+        "type": "translate",
+        "cn_text": cn_text,
+        "cn_hint": "请使用语法\u300c{0}\u300d将以下中文翻译成日语：".format(title),
+        "answer": jp_answer,
+        "source": "grammar",
+        "original_jp": jp_answer,
+        "reading": q2_reading
+    })
 
     return jsonify({"quiz_items": quiz_items})
+
 
 
 def _generate_distractors_for_pattern(correct_pattern, examples):
@@ -836,6 +747,168 @@ def _build_grammar_sentence(pattern, conj):
     # Generic: construct from pattern itself
     n = _random.choice(nouns)
     return n + clean_pat + "、毎日の生活に欠かせません。"
+
+
+
+
+
+
+def _generate_translation_pair(title, usage, conjugation):
+    """根据语法知识点生成中文语句及其日语翻译。
+    使用预置的自然句式库，每个语法点多组候选，随机选取。
+    返回 (cn_text, jp_answer) 元组。"""
+    import random as _random
+    import re as _re
+
+    # 清理标题
+    def _clean(t):
+        t = t.lstrip("~\u300c").rstrip("\u300d")
+        if "/" in t:
+            t = _random.choice([x.strip() for x in t.split("/")])
+        t = _re.sub(r'[（(][^）)]*[）)]', '', t).strip()
+        return t.lstrip("~\u300c").rstrip("\u300d")
+
+    ct = _clean(title)
+
+    # ============================================================
+    # 每个语法点的自然句对库：(中文, 日语)
+    # ============================================================
+
+    PAIRS = {
+        "にとって": [
+            ("对我来说，家人比什么都重要。", "私にとって、家族が何より大切です。"),
+            ("对日本人来说，米饭是不可缺少的食物。", "日本人にとって、ごはんは欠かせない食べ物です。"),
+            ("对小孩来说，这个药太苦了。", "子供にとって、この薬は苦すぎます。"),
+            ("对留学生来说，找房子很不容易。", "留学生にとって、部屋を探すのは大変です。"),
+        ],
+        "のわりには": [
+            ("他个子不高，跑得却很快。", "彼は背が低いわりには、足が速い。"),
+            ("这家店价格便宜，味道却很好。", "この店は値段が安いわりには、味がいい。"),
+            ("她看起来很年轻，实际上已经是三个孩子的妈妈了。", "彼女は若く見えるわりには、もう三人の子の母親だ。"),
+        ],
+        "くせに": [
+            ("明明知道答案，却什么都不说。", "答えを知っているくせに、何も言わない。"),
+            ("明明不会喝酒，却硬要喝。", "お酒が飲めないくせに、無理して飲んでいる。"),
+            ("明明是个大人了，还这么爱哭。", "大人のくせに、すぐ泣くんだから。"),
+        ],
+        "なんか": [
+            ("纳豆这种东西，我一点都不喜欢。", "納豆なんか、全然好きじゃない。"),
+            ("我可不做什么晚饭。", "夕飯なんか作らないよ。"),
+            ("他那种人的话，我才不信呢。", "あいつの言うことなんか、信じない。"),
+        ],
+        "なんて": [
+            ("我根本开不了日语演讲。", "日本語でスピーチなんてできません。"),
+            ("我才不化妆呢。", "お化粧なんてしません。"),
+        ],
+        "など": [
+            ("这种事，没必要特意去问。", "こんなことなど、わざわざ聞く必要はない。"),
+        ],
+        "おかげで": [
+            ("多亏了老师的指导，我考上了大学。", "先生の指導のおかげで、大学に合格できました。"),
+            ("托大家的福，工作顺利完成。", "皆さんのおかげで、仕事がうまくいきました。"),
+            ("多亏每天坚持跑步，身体变好了。", "毎日走っているおかげで、体が丈夫になった。"),
+        ],
+        "せいで": [
+            ("就因为熬夜，早上起不来了。", "夜更かししたせいで、朝起きられなかった。"),
+            ("因为下雨，运动会取消了。", "雨のせいで、運動会が中止になった。"),
+            ("都怪我没注意，把钱包弄丢了。", "私が注意しなかったせいで、財布をなくした。"),
+        ],
+        "かわりに": [
+            ("今天我不去，由他替我去。", "今日は私が行かないかわりに、彼が行ってくれる。"),
+            ("不吃肉，改吃鱼。", "肉を食べないかわりに、魚を食べる。"),
+            ("这间房虽然小，但很干净。", "この部屋は狭いかわりに、きれいだ。"),
+        ],
+        "にかわって": [
+            ("我代替部长出席明天的会议。", "部長にかわって、明日の会議に出席します。"),
+            ("由姐姐代替母亲照顾弟弟。", "母にかわって、姉が弟の世話をしている。"),
+        ],
+        "くらい": [
+            ("累得一步都走不动了。", "一歩も歩けないくらい疲れた。"),
+            ("高兴得眼泪都流出来了。", "涙が出るくらい嬉しかった。"),
+            ("忙到连吃饭的时间都没有。", "ご飯を食べる時間もないくらい忙しい。"),
+        ],
+        "ほど": [
+            ("今天没有昨天那么冷。", "今日は昨日ほど寒くない。"),
+            ("越学越觉得有意思。", "勉強すればするほど、面白くなる。"),
+            ("他是班里最聪明的人。", "彼はクラスで一番頭がいい。"),
+            ("没有比健康更重要的东西了。", "健康ほど大切なものはない。"),
+            ("越贵的东西不一定越好。", "高ければ高いほど、いいとは限らない。"),
+        ],
+        "ことはない": [
+            ("没必要特意跑一趟。", "わざわざ行くことはない。"),
+            ("不用担心，肯定会顺利的。", "心配することはない、きっとうまくいく。"),
+            ("用不着那么着急。", "そんなに急ぐことはない。"),
+        ],
+        "ということだ": [
+            ("听说他下个月要调去东京了。", "彼は来月、東京に転勤するということだ。"),
+            ("据说今年的冬天会特别冷。", "今年の冬は特に寒いということだ。"),
+            ("天气预报说明天会下雨。", "天気予報によると、明日は雨が降るということだ。"),
+        ],
+        "ことだ": [
+            ("想变厉害的话，就是要多练习。", "上手になりたければ、たくさん練習することだ。"),
+            ("最好不要熬夜。", "夜更かししないことだ。"),
+            ("重要的是坚持每天学一点。", "毎日少しずつ勉強を続けることだ。"),
+        ],
+        "っけ": [
+            ("咖啡是加糖来着？", "コーヒーには砂糖を入れるんだっけ？"),
+            ("昨天是说要交报告来着？", "昨日、レポートを提出するって言ったっけ？"),
+            ("以前这里好像有一家书店来着？", "昔ここに本屋さんがあったっけ？"),
+        ],
+        "しかない": [
+            ("事已至此，只能努力了。", "こうなったら、頑張るしかない。"),
+            ("来不及了，只能打车去。", "間に合わないから、タクシーで行くしかない。"),
+            ("这个问题除了他没人能解决。", "この問題は彼に頼むしかない。"),
+        ],
+        "だって": [
+            ("听说那家店的拉面特别好吃。", "あの店のラーメン、すごく美味しいんだって。"),
+            ("听说他辞职了。", "彼、会社を辞めたんだって。"),
+            ("据说那个公园樱花很漂亮。", "その公園は桜が綺麗なんだって。"),
+        ],
+        "だもん": [
+            ("不借给你，因为我自己要用嘛。", "貸さないよ、自分で使うんだもん。"),
+            ("没办法呀，谁让下雨了呢。", "仕方ないよ、雨が降ってるんだもん。"),
+            ("当然会生气啦，太过分了嘛。", "怒るよ、ひどいんだもん。"),
+        ],
+        "つまり": [
+            ("他没有手机也没有电脑，也就是说没法联系。", "彼は携帯もパソコンも持っていない。つまり、連絡が取れないということだ。"),
+            ("比赛取消了。也就是说，今天白来了。", "試合は中止になった。つまり、今日は無駄足だったということだ。"),
+        ],
+        "そのため": [
+            ("想出国留学，为此正在打工攒钱。", "留学したいと思っている。そのために、アルバイトでお金をためている。"),
+            ("明天有重要的发表，因此今晚要熬夜准备了。", "明日大事なプレゼンがある。そのため、今夜は徹夜で準備する。"),
+        ],
+        "その結果": [
+            ("坚持减肥三个月，结果瘦了五公斤。", "三か月ダイエットを続けた。その結果、五キロ痩せた。"),
+            ("反复实验，终于成功了。", "何度も実験を繰り返した。その結果、ついに成功した。"),
+        ],
+        "なぜなら": [
+            ("我不能去。因为身体不太舒服。", "私は行けません。なぜなら、体調があまり良くないからです。"),
+            ("这本书很推荐。因为内容简单易懂。", "この本はおすすめです。なぜなら、内容が簡単でわかりやすいからです。"),
+        ],
+        "なぜかというと": [
+            ("我选了日语课。因为一直对日本文化很感兴趣。", "日本語の授業を選びました。なぜかというと、ずっと日本文化に興味があったからです。"),
+        ],
+    }
+
+    # ---- 匹配语法点 ----
+    candidates = []
+    for key, pairs in PAIRS.items():
+        if key in ct or key in title:
+            candidates.extend(pairs)
+
+    if candidates:
+        cn_text, jp_answer = _random.choice(candidates)
+    else:
+        # 未匹配的语法点：生成简单后备句
+        cn_text = "请使用\u300c{0}\u300d将以下内容翻译成日语。".format(title)
+        jp_answer = "この文法を使って文を作ってください。"
+
+    if not cn_text or not jp_answer:
+        cn_text = usage[:60] if usage else "请使用\u300c{title}\u300d造句".format(title=title)
+        jp_answer = ct
+
+    return cn_text, jp_answer
+
 
 
 # Listening routes (NEW)
